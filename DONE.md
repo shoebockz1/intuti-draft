@@ -2,7 +2,7 @@
 
 Items completed and verified working, moved off `BACKLOG.md`.
 
-Last updated: 2026-07-09 (evening)
+Last updated: 2026-07-09 (night)
 
 ---
 
@@ -23,6 +23,8 @@ Last updated: 2026-07-09 (evening)
 - **Done** — Real commissioner passcode set (replacing the local test placeholder), both in local `.env` and on Render.
 - **Done** — App deployed to Render at `https://intuti-draft-board.onrender.com`. Fixed a build failure along the way: Render's build step runs with `NODE_ENV=production` already set, which is also npm's own signal to skip devDependencies — broke the build since `vite`/`typescript`/`@types/node` all live there. Fixed with `--include=dev` on both installs, verified by reproducing the exact failure locally before pushing the fix.
 - **Done** — Verified the live production deployment end-to-end via direct requests: health check, static site + SPA routing on both `/` and `/admin`, commissioner login with session persistence across requests, and the Yahoo OAuth redirect all confirmed working against the real hosted URL (not just localhost).
+- **Done** — Fixed /admin losing all setup data (owner names, protected players, 5th place) on revisit after starting a draft — it now pre-fills from the live server-side DraftState instead of resetting to blank defaults. Surfaced and fixed a related danger: re-clicking "Start draft" while one's already in progress now requires explicit confirmation instead of silently overwriting it.
+- **Done** — Moved Reset off the shared board entirely (Undo stays); it now lives only on the commissioner-gated `/admin` screen, reducing the chance of a stray click on a shared/passed-around device during a live draft. Dropped the now-pointless "soft reset" tier in the process. Verified with a full click-through on the live production site: setup data retention, the wipe-guard confirmation prompt, and Reset's absence from the board all confirmed working.
 
 ---
 
