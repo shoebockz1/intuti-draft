@@ -1,0 +1,66 @@
+/* Setup screen — order tab, protected players tab, randomizer tab. */
+
+.resume-banner {
+  background: var(--amber-bg);
+  border: 1px solid rgba(186, 117, 23, .4);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  font-size: 12px;
+  color: var(--amber);
+}
+
+/* ORDER TAB */
+.order-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.order-row:last-child { border-bottom: none; }
+.order-num { font-size: 11px; color: var(--text3); width: 18px; text-align: right; flex-shrink: 0; }
+.order-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 14px;
+  font-family: "Georgia", serif;
+}
+.order-input::placeholder { color: var(--text3); }
+
+/* PROTECTED TAB */
+.prot-tag {
+  font-size: 11px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text2);
+}
+.prot-tag-x { cursor: pointer; color: var(--text3); }
+.prot-tag-x:hover { color: var(--text); }
+
+/* RANDOMIZER TAB */
+.rand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+  transition: all .35s;
+}
+.rand-pos { font-size: 12px; color: var(--text3); width: 22px; flex-shrink: 0; }
+.rand-name { font-size: 14px; color: var(--text); }
+.rand-hi { border-color: var(--green); background: var(--green-bg); }

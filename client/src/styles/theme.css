@@ -1,0 +1,158 @@
+/* Global theme — colors, typography, and base element styles.
+   Values ported verbatim from intuti-draft-prototype.html's <style> block. */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #0f0f0f;
+  --bg2: #1a1a1a;
+  --bg3: #242424;
+  --border: #2e2e2e;
+  --border2: #3a3a3a;
+  --text: #f0f0f0;
+  --text2: #a0a0a0;
+  --text3: #666;
+  --green: #1D9E75;
+  --green-bg: #0a2e22;
+  --green-light: #E1F5EE;
+  --amber: #BA7517;
+  --amber-bg: #2e1f00;
+  --red: #D85A30;
+  --red-bg: #2e1000;
+  --blue: #378ADD;
+  --blue-bg: #0a1e35;
+  --purple: #7F77DD;
+  --purple-bg: #1a1830;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Georgia", serif;
+  min-height: 100vh;
+}
+
+input, select, button {
+  font-family: "Georgia", serif;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.league-sub {
+  font-size: 11px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-top: 3px;
+}
+
+.slabel {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 6px;
+}
+
+#app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* BUTTONS */
+.btn {
+  font-size: 12px;
+  font-family: "Georgia", serif;
+  padding: 7px 16px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text);
+  transition: all .15s;
+  letter-spacing: .03em;
+}
+.btn:hover { background: var(--bg3); border-color: var(--text3); }
+.btn.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+.btn.primary:hover { opacity: .88; }
+.btn.sm { font-size: 11px; padding: 5px 10px; }
+.btn.xs { font-size: 10px; padding: 3px 8px; }
+.btn.danger { border-color: #7a2a2a; color: #e07070; }
+.btn.danger:hover { background: #2e1010; border-color: var(--red); }
+.btn:disabled { opacity: .25; cursor: default; }
+
+/* TABS */
+.top-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+.top-tab {
+  font-size: 12px; padding: 9px 18px; cursor: pointer; background: transparent; border: none;
+  color: var(--text3); font-family: "Georgia", serif; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; letter-spacing: .05em; text-transform: uppercase; transition: color .15s;
+}
+.top-tab.active { color: var(--text); border-bottom-color: var(--text); }
+.top-tab:hover { color: var(--text2); }
+
+/* PANELS */
+.panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+}
+
+select {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: "Georgia", serif;
+  outline: none;
+}
+select:focus { border-color: var(--text3); }
+
+input[type=text] {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: "Georgia", serif;
+  outline: none;
+}
+input[type=text]:focus { border-color: var(--text3); }
+input[type=text]::placeholder { color: var(--text3); }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--bg);
+  padding: 8px 18px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity .3s;
+  pointer-events: none;
+  z-index: 999;
+  letter-spacing: .04em;
+}
+.toast.show { opacity: 1; }

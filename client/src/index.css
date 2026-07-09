@@ -1,0 +1,8 @@
+@import "./styles/theme.css";
+@import "./styles/setup.css";
+@import "./styles/draft.css";
+@import "./styles/modals.css";
+
+#root {
+  min-height: 100svh;
+}

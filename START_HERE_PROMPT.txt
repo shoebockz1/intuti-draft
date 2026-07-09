@@ -1,0 +1,11 @@
+I'm continuing a project from a chat conversation with Claude. This is a custom fantasy football draft tool for my 16-year-old keeper league ("Intuti", 10 owners).
+
+Please read HANDOFF.md in this folder first — it contains the complete spec: all league rules (especially the "seal" mechanic and "5th place winner" jump-pick mechanic, which are unusual and easy to get wrong), everything already decided about integrations (Sleeper API, Yahoo — deferred), every UX decision I've made so far, and a feature inventory of the working prototype.
+
+Also in this folder: intuti-draft-prototype.html — a working single-file HTML/JS reference implementation of the draft logic. Open it in a browser to see how it behaves. Treat its behavior as correct/authoritative for the rules — it's been tested and refined through several rounds of feedback with me already. The code itself is a bit rough (single file, inline styles) since it was built in a chat artifact tool, so feel free to restructure it properly as long as behavior is preserved.
+
+Before writing any code, please:
+1. Confirm you've read and understood the seal mechanic and 5th place winner mechanic (Section 2 of HANDOFF.md) — these are the trickiest part and I'd rather you paraphrase them back to me than get them subtly wrong.
+2. Ask me the open questions about mid-draft trades (Section 3) — I haven't finalized that design yet and don't want you to guess.
+
+I have a Java/C# background and I'm comfortable reading/debugging code, but I'd like you to lead on implementation while I drive requirements and test/review what you build.

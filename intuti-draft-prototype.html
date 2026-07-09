@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Intuti — Fantasy Draft</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0f0f0f;
+  --bg2:#1a1a1a;
+  --bg3:#242424;
+  --border:#2e2e2e;
+  --border2:#3a3a3a;
+  --text:#f0f0f0;
+  --text2:#a0a0a0;
+  --text3:#666;
+  --green:#1D9E75;
+  --green-bg:#0a2e22;
+  --green-light:#E1F5EE;
+  --amber:#BA7517;
+  --amber-bg:#2e1f00;
+  --red:#D85A30;
+  --red-bg:#2e1000;
+  --blue:#378ADD;
+  --blue-bg:#0a1e35;
+  --purple:#7F77DD;
+  --purple-bg:#1a1830;
+  --radius:8px;
+  --radius-lg:12px;
+}
+body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;min-height:100vh;}
+input,select,button{font-family:'Georgia',serif;}
+
+/* TYPOGRAPHY */
+h1{font-size:28px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--text);}
+.league-sub{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--text3);margin-top:3px;}
+.slabel{font-size:10px;font-weight:400;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
+
+/* LAYOUT */
+#app{max-width:1400px;margin:0 auto;padding:1.5rem;}
+.screen{display:none;}.screen.active{display:block;}
+
+/* BUTTONS */
+.btn{font-size:12px;font-family:'Georgia',serif;padding:7px 16px;cursor:pointer;border-radius:var(--radius);border:1px solid var(--border2);background:transparent;color:var(--text);transition:all .15s;letter-spacing:.03em;}
+.btn:hover{background:var(--bg3);border-color:var(--text3);}
+.btn.primary{background:var(--text);color:var(--bg);border-color:var(--text);}
+.btn.primary:hover{opacity:.88;}
+.btn.sm{font-size:11px;padding:5px 10px;}
+.btn.xs{font-size:10px;padding:3px 8px;}
+.btn.danger{border-color:#7a2a2a;color:#e07070;}
+.btn.danger:hover{background:#2e1010;border-color:var(--red);}
+.btn:disabled{opacity:.25;cursor:default;}
+
+/* TABS */
+.top-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem;}
+.top-tab{font-size:12px;padding:9px 18px;cursor:pointer;background:transparent;border:none;color:var(--text3);font-family:'Georgia',serif;border-bottom:2px solid transparent;margin-bottom:-1px;letter-spacing:.05em;text-transform:uppercase;transition:color .15s;}
+.top-tab.active{color:var(--text);border-bottom-color:var(--text);}
+.top-tab:hover{color:var(--text2);}
+
+/* PANELS */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;}
+
+/* SETUP — ORDER */
+.order-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+.order-row:last-child{border-bottom:none;}
+.order-num{font-size:11px;color:var(--text3);width:18px;text-align:right;flex-shrink:0;}
+.order-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:14px;font-family:'Georgia',serif;}
+.order-input::placeholder{color:var(--text3);}
+
+/* SETUP — PROTECTED */
+.prot-tag{font-size:11px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px;color:var(--text2);}
+.prot-tag-x{cursor:pointer;color:var(--text3);}
+.prot-tag-x:hover{color:var(--text);}
+
+/* RANDOMIZER */
+.rand-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius);background:var(--bg2);border:1px solid var(--border);margin-bottom:6px;transition:all .35s;}
+.rand-pos{font-size:12px;color:var(--text3);width:22px;flex-shrink:0;}
+.rand-name{font-size:14px;color:var(--text);}
+.rand-hi{border-color:var(--green);background:var(--green-bg);}
+
+/* DRAFT HEADER */
+.draft-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;gap:12px;}
+.header-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+.counter-pill{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px;}
+.counter-big{font-size:16px;font-weight:400;color:var(--text);}
+
+/* DRAFT LAYOUT */
+.draft-layout{display:grid;grid-template-columns:200px 1fr;gap:12px;}
+.sidebar{display:flex;flex-direction:column;gap:8px;}
+
+/* ON CLOCK */
+.clock-name{font-size:18px;color:var(--text);margin:4px 0 2px;}
+.clock-meta{font-size:11px;color:var(--text3);}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;margin-right:3px;margin-top:4px;letter-spacing:.03em;}
+.b-intact{background:var(--green-bg);color:var(--green);}
+.b-broken{background:var(--red-bg);color:var(--red);}
+.b-fifth{background:var(--amber-bg);color:var(--amber);}
+.b-jump{background:var(--purple-bg);color:var(--purple);}
+
+/* PICK PANEL */
+.pick-tabs{display:flex;gap:4px;margin-bottom:10px;}
+.ptab{flex:1;font-size:11px;padding:5px;text-align:center;cursor:pointer;border-radius:var(--radius);border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'Georgia',serif;transition:all .15s;}
+.ptab.active{background:var(--text);color:var(--bg);border-color:var(--text);}
+.ptab:disabled{opacity:.2;cursor:default;}
+.warn{font-size:11px;color:var(--red);margin-top:6px;line-height:1.5;}
+.info{font-size:11px;color:var(--text3);margin-top:6px;line-height:1.5;}
+.pick-input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:7px 10px;font-size:13px;color:var(--text);font-family:'Georgia',serif;outline:none;}
+.pick-input:focus{border-color:var(--text3);}
+
+/* PROTECTED LIST */
+.prot-item{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);}
+.prot-item:last-child{border-bottom:none;}
+.prot-item.used{opacity:.3;}
+.prot-item-name{font-size:12px;color:var(--text);}
+
+/* STATUS */
+.status-row{display:flex;align-items:center;justify-content:space-between;padding:3px 0;}
+.status-name{font-size:11px;color:var(--text);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0;}
+.d-intact{background:var(--green);}
+.d-broken{background:var(--red);}
+
+/* LEGEND */
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);letter-spacing:.03em;}
+.ldot{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+
+/* BOARD */
+.board-outer{overflow-x:auto;}
+.board-outer::-webkit-scrollbar{height:4px;}
+.board-outer::-webkit-scrollbar-track{background:var(--bg2);}
+.board-outer::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.board{border-collapse:collapse;table-layout:fixed;}
+.board th{font-size:9px;font-weight:400;color:var(--text3);text-align:left;padding:5px 4px;border-bottom:1px solid var(--border);white-space:nowrap;letter-spacing:.06em;text-transform:uppercase;position:sticky;top:0;background:var(--bg);z-index:1;}
+.board th.rnd-th{width:26px;}
+.board th.owner-th{width:76px;}
+.board td{padding:3px 4px;border-bottom:1px solid var(--border);vertical-align:top;width:76px;}
+.board td.rnd-td{font-size:9px;color:var(--text3);width:26px;padding-top:5px;}
+.cell{border-radius:4px;padding:3px 4px;min-height:36px;}
+.cell-cur{background:rgba(186,117,23,.18);border:1px solid rgba(186,117,23,.4);}
+.cell-kept{background:rgba(29,158,117,.12);border:1px solid rgba(29,158,117,.25);}
+.cell-unprot{background:rgba(55,138,221,.12);border:1px solid rgba(55,138,221,.25);}
+.cell-jump{background:rgba(127,119,221,.15);border:1px solid rgba(127,119,221,.3);}
+.cell-skip{background:var(--bg2);opacity:.5;}
+.cell-empty{border:1px solid transparent;}
+.cell-pnum{font-size:9px;color:var(--text3);line-height:1;}
+.cell-player{font-size:11px;color:var(--text);line-height:1.3;margin-top:2px;word-break:break-word;}
+.cell-picking{font-size:9px;color:var(--amber);font-style:italic;margin-top:2px;}
+.cell-skip-text{font-size:9px;color:var(--text3);font-style:italic;margin-top:2px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 18px;border-radius:var(--radius);font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;letter-spacing:.04em;}
+.toast.show{opacity:1;}
+
+/* RIGHT SIDEBAR */
+.draft-layout{display:grid;grid-template-columns:200px 1fr;gap:12px;transition:grid-template-columns .25s;}
+.draft-layout.with-right{grid-template-columns:200px 1fr 210px;}
+.right-sidebar{display:flex;flex-direction:column;gap:8px;min-width:0;}
+.rpanel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;}
+.rpanel-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+.rpanel-header:hover{background:var(--bg3);}
+.rpanel-title{font-size:10px;font-weight:400;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;}
+.rpanel-toggle{font-size:14px;color:var(--text3);line-height:1;transition:transform .2s;}
+.rpanel-toggle.open{transform:rotate(180deg);}
+.rpanel-body{padding:12px 14px;display:none;}
+.rpanel-body.open{display:block;}
+.roster-item{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);}
+.roster-item:last-child{border-bottom:none;}
+.roster-item-name{font-size:12px;color:var(--text);}
+.roster-item.used .roster-item-name{color:var(--text3);}
+.roster-status{font-size:9px;letter-spacing:.04em;}
+.rs-kept{color:var(--green);}
+.rs-free{color:var(--red);}
+.rs-protected{color:var(--text3);}
+.toggle-right-btn{font-size:11px;padding:4px 10px;}
+/* who-am-i modal */
+.wai-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:600;}
+.wai-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:28px 32px;max-width:320px;width:90%;text-align:center;}
+.wai-box h2{font-size:15px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;}
+.wai-box p{font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.5;}
+.wai-box select{width:100%;margin-bottom:12px;}
+
+/* MODAL — reset confirm */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:500;display:none;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:24px 28px;max-width:360px;width:90%;}
+.modal h2{font-size:16px;font-weight:400;margin-bottom:8px;color:var(--text);}
+.modal p{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:16px;}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;}
+
+/* RESUME BANNER */
+.resume-banner{background:var(--amber-bg);border:1px solid rgba(186,117,23,.4);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;font-size:12px;color:var(--amber);}
+
+select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:7px 10px;font-size:13px;color:var(--text);font-family:'Georgia',serif;outline:none;}
+select:focus{border-color:var(--text3);}
+
+input[type=text]{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:7px 10px;font-size:13px;color:var(--text);font-family:'Georgia',serif;outline:none;}
+input[type=text]:focus{border-color:var(--text3);}
+input[type=text]::placeholder{color:var(--text3);}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- SETUP -->
+<div id="screen-setup" class="screen active">
+  <div style="margin-bottom:1.25rem;display:flex;align-items:flex-start;justify-content:space-between;">
+    <div><h1>Intuti</h1><div class="league-sub">Fantasy Football · Draft Setup</div></div>
+  </div>
+
+  <div id="resume-banner" class="resume-banner" style="display:none;">
+    Draft in progress — <button class="btn sm primary" onclick="resumeDraft()">Resume draft</button>
+  </div>
+
+  <div class="top-tabs">
+    <button class="top-tab active" onclick="showSetupTab('order')">Draft order</button>
+    <button class="top-tab" onclick="showSetupTab('protected')">Protected players</button>
+    <button class="top-tab" onclick="showSetupTab('randomizer')">Order randomizer</button>
+  </div>
+
+  <!-- ORDER TAB -->
+  <div id="stab-order">
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:24px;">
+      <div>
+        <div class="slabel" style="margin-bottom:10px;">Owner names in pick order — 1 picks first</div>
+        <div id="order-list"></div>
+      </div>
+      <div>
+        <div class="slabel" style="margin-bottom:10px;">5th place winner</div>
+        <div class="panel" style="padding:12px 14px;">
+          <div class="info" style="margin-bottom:8px;">The 5th place winner receives a special jump pick after the 2nd unprotected selection.</div>
+          <select id="fifth-select" style="width:100%;" onchange="onFifthChange()"></select>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:1.25rem;display:flex;gap:8px;">
+      <button class="btn primary" onclick="goToProtected()">Next: protected players →</button>
+    </div>
+  </div>
+
+  <!-- PROTECTED TAB -->
+  <div id="stab-protected" style="display:none;">
+    <div id="protected-setup-content"></div>
+    <div style="margin-top:1.25rem;display:flex;gap:8px;">
+      <button class="btn" onclick="showSetupTab('order')">← Back</button>
+      <button class="btn primary" onclick="startDraft()">Start draft</button>
+    </div>
+  </div>
+
+  <!-- RANDOMIZER TAB -->
+  <div id="stab-randomizer" style="display:none;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;" id="rand-inputs"></div>
+    <div style="display:flex;gap:8px;margin-bottom:1rem;">
+      <button class="btn primary" onclick="runRandomizer()">Randomize</button>
+      <button class="btn" onclick="copyRandOrder()">Copy order</button>
+    </div>
+    <div id="rand-result" style="display:none;"></div>
+    <button class="btn sm" id="use-rand-btn" style="display:none;margin-top:8px;" onclick="useRandOrder()">Use this order in setup →</button>
+  </div>
+</div>
+
+<!-- DRAFT -->
+<div id="screen-draft" class="screen">
+  <div class="draft-header">
+    <div><h1>Intuti</h1><div class="league-sub">Fantasy Football · Live Draft</div></div>
+    <div class="header-actions">
+      <div class="counter-pill">Unprotected: <span class="counter-big" id="unprot-count">0</span><span style="font-size:10px;color:var(--text3)">/3</span></div>
+      <button class="btn sm toggle-right-btn" id="toggle-right-btn" onclick="toggleRightSidebar()">Research ▸</button>
+      <button class="btn sm" id="undo-btn" onclick="undoPick()" disabled>↩ Undo</button>
+      <button class="btn sm danger" onclick="openResetModal()">Reset</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="ldot" style="background:rgba(186,117,23,.5);"></div>on clock</div>
+    <div class="legend-item"><div class="ldot" style="background:rgba(29,158,117,.4);"></div>kept own</div>
+    <div class="legend-item"><div class="ldot" style="background:rgba(55,138,221,.4);"></div>unprotected</div>
+    <div class="legend-item"><div class="ldot" style="background:rgba(127,119,221,.5);"></div>5th jump</div>
+    <div class="legend-item"><div class="ldot" style="background:var(--bg2);"></div>skipped</div>
+  </div>
+
+  <div class="draft-layout" id="draft-layout">
+    <div class="sidebar">
+      <div class="panel" id="on-clock-panel"></div>
+      <div class="panel" id="pick-panel"></div>
+      <div class="panel" id="prot-panel" style="max-height:200px;overflow-y:auto;"></div>
+      <div class="panel" id="status-panel"></div>
+    </div>
+    <div class="board-outer">
+      <table class="board" id="draft-board"></table>
+    </div>
+    <div class="right-sidebar" id="right-sidebar" style="display:none;">
+
+      <!-- TEAM ROSTER PANEL -->
+      <div class="rpanel">
+        <div class="rpanel-header" onclick="toggleRPanel('roster')">
+          <span class="rpanel-title">Team roster</span>
+          <span class="rpanel-toggle open" id="rtoggle-roster">▾</span>
+        </div>
+        <div class="rpanel-body open" id="rbody-roster">
+          <select id="roster-team-select" style="width:100%;margin-bottom:10px;font-size:12px;" onchange="renderRosterPanel()"></select>
+          <div id="roster-panel-list"></div>
+        </div>
+      </div>
+
+      <!-- FREE AGENTS PANEL -->
+      <div class="rpanel">
+        <div class="rpanel-header" onclick="toggleRPanel('fa')">
+          <span class="rpanel-title">Free agents</span>
+          <span class="rpanel-toggle open" id="rtoggle-fa">▾</span>
+        </div>
+        <div class="rpanel-body open" id="rbody-fa">
+          <div style="text-align:center;padding:20px 8px;">
+            <div style="font-size:20px;margin-bottom:8px;color:var(--text3);">⚡</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">Player list not connected</div>
+            <div style="font-size:11px;color:var(--text3);line-height:1.5;">Free agent search will be available once a live player API is connected. Players will show available / drafted status in real time.</div>
+            <!-- TODO: wire Sleeper API here. Add search input + scrollable player list.
+                 Each row: player name, position, team, status badge (available/drafted).
+                 Drafted-from-here should call draftUnprotected() with the player prefilled. -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- WHO AM I MODAL -->
+<div class="wai-overlay" id="wai-modal">
+  <div class="wai-box">
+    <h2>Who are you?</h2>
+    <p>Select your name so your team roster defaults in the research panel.</p>
+    <select id="wai-select"></select>
+    <button class="btn primary" style="width:100%;" onclick="confirmWhoAmI()">Confirm</button>
+  </div>
+</div>
+
+<!-- RESET MODAL -->
+<div class="modal-overlay" id="reset-modal">
+  <div class="modal">
+    <h2>Reset draft?</h2>
+    <p>This will return to the setup screen. Your draft history will be preserved — you can resume from where you left off. To permanently wipe the draft, confirm below.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div class="modal-btns">
+        <button class="btn" onclick="closeResetModal()">Cancel</button>
+        <button class="btn primary" onclick="softReset()">Return to setup</button>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:2px;">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Permanent wipe — cannot be undone</div>
+        <div class="modal-btns">
+          <button class="btn danger" onclick="hardReset()">Wipe everything &amp; start over</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ROUNDS = 18, N = 10;
+let ownerNames = Array.from({length:N}, (_,i) => `Owner ${i+1}`);
+let protectedPlayers = Array.from({length:N}, () => []);
+let fifthPos = 0;
+let randOrder = null;
+let S = null; // draft state
+
+// ===================== SETUP =====================
+
+function showSetupTab(tab) {
+  ['order','protected','randomizer'].forEach(t => {
+    document.getElementById(`stab-${t}`).style.display = t===tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.top-tab').forEach((el,i) => {
+    el.classList.toggle('active', ['order','protected','randomizer'][i] === tab);
+  });
+  if (tab === 'protected') renderProtectedSetup();
+  if (tab === 'randomizer') renderRandInputs();
+}
+
+function renderOrderList() {
+  const el = document.getElementById('order-list');
+  el.innerHTML = ownerNames.map((n,i) => `
+    <div class="order-row">
+      <span class="order-num">${i+1}</span>
+      <input class="order-input" value="${n}" placeholder="Owner ${i+1}"
+        oninput="ownerNames[${i}]=this.value; syncFifthSelect(); syncRandInputs();"/>
+      <button class="btn xs" onclick="moveOwner(${i},-1)" ${i===0?'disabled':''}>↑</button>
+      <button class="btn xs" onclick="moveOwner(${i},1)" ${i===N-1?'disabled':''}>↓</button>
+    </div>`).join('');
+  syncFifthSelect();
+}
+
+function syncFifthSelect() {
+  const sel = document.getElementById('fifth-select');
+  const prev = sel.value;
+  sel.innerHTML = ownerNames.map((n,i) => `<option value="${i}">${n||`Owner ${i+1}`}</option>`).join('');
+  sel.value = prev < N ? prev : 0;
+  fifthPos = parseInt(sel.value);
+}
+
+function onFifthChange() {
+  fifthPos = parseInt(document.getElementById('fifth-select').value);
+}
+
+function moveOwner(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= N) return;
+  [ownerNames[i], ownerNames[j]] = [ownerNames[j], ownerNames[i]];
+  [protectedPlayers[i], protectedPlayers[j]] = [protectedPlayers[j], protectedPlayers[i]];
+  renderOrderList();
+}
+
+function goToProtected() {
+  // commit inputs
+  document.querySelectorAll('#order-list .order-input').forEach((el,i) => {
+    ownerNames[i] = el.value.trim() || `Owner ${i+1}`;
+  });
+  showSetupTab('protected');
+}
+
+// ===================== PROTECTED =====================
+
+const TEST_FIRST = ['Patrick','Josh','Lamar','Jalen','Joe','Justin','Dak','Trevor','Tua','Jordan','Brock','Kyler','Derek','Geno','Baker','Sam','Mac','Kenny','Deshaun','Russell','Kirk','Daniel','Carson','Jimmy','Ryan','Taylor','Saquon','Derrick','Dalvin','Nick','Alvin','Austin','Miles','Tony','Aaron','Ezekiel','David','James','Dameon','Rachamel','Travis','Tyreek','Davante','Stefon','Jaylen','Cooper','Deebo','Ja\'Marr','Mike','Justin','CeeDee','Amari','Keenan','Chris','DeAndre','Tee','Brandin','Diontae','Allen','Tyler','Mark','Dallas','Evan','George','Pat','Cole','Darren','Hunter','Kyle','Zach','Gerald','Logan','Marquise','Kadarius','Jamison','Elijah','Christian','Noah','Isaiah','Adam','Robert','Cole','Irv','Dawson'];
+const TEST_LAST  = ['Mahomes','Allen','Jackson','Hurts','Burrow','Herbert','Prescott','Lawrence','Tagovailoa','Love','Purdy','Murray','Carr','Smith','Mayfield','Darnold','Jones','Pickett','Watson','Wilson','Cousins','Jones','Wentz','Garoppolo','Tannehill','Hill','Barkley','Henry','Cook','Chubb','Kamara','Ekeler','Sanders','Pollard','Jones','Elliott','Montgomery','Conner','Pierce','White','Kelce','Hill','Adams','Diggs','Waddle','Kupp','Samuel','Chase','Evans','Jefferson','Lamb','Cooper','Allen','Godwin','Hopkins','Higgins','Cooks','Johnson','Robinson','Waller','Goedert','Frey','McBride','Freiermuth','Hockenson','Smith','Hurst','Tonyan','Thomas','Andrews','Gesicki','Moore','Wilson','Wyatt','Moore','Hill','McLaurin','London','St.Brown','Thielen','Lazard','Tonyan'];
+
+function randPlayerName(used) {
+  let name, attempts = 0;
+  do {
+    const f = TEST_FIRST[Math.floor(Math.random()*TEST_FIRST.length)];
+    const l = TEST_LAST[Math.floor(Math.random()*TEST_LAST.length)];
+    name = `${f} ${l}`;
+    attempts++;
+  } while (used.has(name) && attempts < 200);
+  used.add(name);
+  return name;
+}
+
+function fillTestData() {
+  const used = new Set();
+  // collect already-entered names so we don't duplicate
+  protectedPlayers.forEach(arr => arr.forEach(p => used.add(p.name)));
+  for (let i = 0; i < N; i++) {
+    const current = protectedPlayers[i].length;
+    const needed = Math.max(0, 17 - current);
+    for (let k = 0; k < needed; k++) {
+      protectedPlayers[i].push({name: randPlayerName(used), used: false});
+    }
+  }
+  renderProtectedSetup();
+  showToast('Test data filled — add your last player per owner');
+}
+
+function clearTestData() {
+  protectedPlayers = Array.from({length:N}, () => []);
+  renderProtectedSetup();
+  showToast('Protected players cleared');
+}
+
+function renderProtectedSetup() {
+  const el = document.getElementById('protected-setup-content');
+  el.innerHTML = `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <button class="btn sm" onclick="fillTestData()">Fill with test data (17 per owner)</button>
+      <button class="btn sm danger" onclick="clearTestData()">Clear all</button>
+      <span style="font-size:11px;color:var(--text3);margin-left:4px;">For testing only — replaces real rosters before draft day</span>
+    </div>` +
+  ownerNames.map((name,i) => `
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div class="slabel" style="margin-bottom:0;">${name||`Owner ${i+1}`}</div>
+        <span style="font-size:10px;color:var(--text3);" id="pcount-${i}"></span>
+      </div>
+      <div id="ptags-${i}" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;min-height:20px;"></div>
+      <div style="display:flex;gap:6px;">
+        <input type="text" id="pinput-${i}" placeholder="Player name"
+          style="flex:1;" onkeydown="if(event.key==='Enter')addProt(${i})"/>
+        <button class="btn sm" onclick="addProt(${i})">Add</button>
+      </div>
+    </div>`).join('');
+  ownerNames.forEach((_,i) => renderProtTags(i));
+}
+
+function addProt(i) {
+  const inp = document.getElementById(`pinput-${i}`);
+  const name = inp.value.trim();
+  if (!name) return;
+  protectedPlayers[i].push({name, used: false});
+  inp.value = '';
+  renderProtTags(i);
+}
+
+function removeProt(i, j) {
+  protectedPlayers[i].splice(j, 1);
+  renderProtTags(i);
+}
+
+function renderProtTags(i) {
+  const el = document.getElementById(`ptags-${i}`);
+  if (!el) return;
+  el.innerHTML = protectedPlayers[i].map((p,j) =>
+    `<span class="prot-tag">${p.name}<span class="prot-tag-x" onclick="removeProt(${i},${j})">×</span></span>`
+  ).join('');
+  const cnt = document.getElementById(`pcount-${i}`);
+  if (cnt) cnt.textContent = `${protectedPlayers[i].length} player${protectedPlayers[i].length!==1?'s':''}`;
+}
+
+// ===================== RANDOMIZER =====================
+
+function renderRandInputs() {
+  const el = document.getElementById('rand-inputs');
+  el.innerHTML = Array.from({length:N}, (_,i) =>
+    `<input type="text" id="rand-name-${i}" value="${ownerNames[i]||''}" placeholder="Owner ${i+1}"/>`
+  ).join('');
+}
+
+function syncRandInputs() {
+  Array.from({length:N}, (_,i) => {
+    const el = document.getElementById(`rand-name-${i}`);
+    if (el) el.value = ownerNames[i] || '';
+  });
+}
+
+function runRandomizer() {
+  const names = Array.from({length:N}, (_,i) =>
+    document.getElementById(`rand-name-${i}`)?.value.trim() || `Owner ${i+1}`);
+  const shuffled = [...names];
+  for (let i = shuffled.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [shuffled[i],shuffled[j]] = [shuffled[j],shuffled[i]];
+  }
+  randOrder = shuffled;
+  const el = document.getElementById('rand-result');
+  el.style.display = 'block';
+  el.innerHTML = shuffled.map((n,i) =>
+    `<div class="rand-row" id="rrow-${i}"><span class="rand-pos">${i+1}</span><span class="rand-name">${n}</span></div>`
+  ).join('');
+  document.getElementById('use-rand-btn').style.display = 'inline-block';
+  shuffled.forEach((_,i) =>
+    setTimeout(() => document.getElementById(`rrow-${i}`)?.classList.add('rand-hi'), i*70+150));
+  setTimeout(() =>
+    shuffled.forEach((_,i) => document.getElementById(`rrow-${i}`)?.classList.remove('rand-hi')),
+    shuffled.length*70+700);
+}
+
+function copyRandOrder() {
+  if (!randOrder) { showToast('Randomize first'); return; }
+  navigator.clipboard.writeText(randOrder.map((n,i) => `${i+1}. ${n}`).join('\n'))
+    .then(() => showToast('Copied to clipboard'));
+}
+
+function useRandOrder() {
+  if (!randOrder) return;
+  const names = Array.from({length:N}, (_,i) =>
+    document.getElementById(`rand-name-${i}`)?.value.trim() || `Owner ${i+1}`);
+  const origProts = protectedPlayers.map(p => [...p]);
+  randOrder.forEach((rname, newPos) => {
+    const origIdx = names.indexOf(rname);
+    ownerNames[newPos] = rname;
+    protectedPlayers[newPos] = origIdx >= 0 ? origProts[origIdx].map(p=>({...p})) : [];
+  });
+  showSetupTab('order');
+  renderOrderList();
+  showToast('Order applied!');
+}
+
+// ===================== DRAFT ENGINE =====================
+
+function buildSnake(n, rounds) {
+  const picks = [];
+  for (let r = 0; r < rounds; r++) {
+    const row = Array.from({length:n}, (_,i) => r%2===0 ? i : n-1-i);
+    row.forEach((ownerIdx, slot) =>
+      picks.push({round:r+1, slot:slot+1, ownerIdx, player:null, type:null, isSkipped:false, isFifthJump:false}));
+  }
+  return picks;
+}
+
+function startDraft() {
+  // commit names
+  document.querySelectorAll('#order-list .order-input').forEach((el,i) => {
+    ownerNames[i] = el.value.trim() || `Owner ${i+1}`;
+  });
+  fifthPos = parseInt(document.getElementById('fifth-select').value);
+
+  S = {
+    owners: ownerNames.map((name,i) => ({
+      name, idx: i,
+      sealBroken: false,
+      isFifth: i === fifthPos,
+      protected: protectedPlayers[i].map(p => ({...p, used:false}))
+    })),
+    fifthPos,
+    picks: buildSnake(N, ROUNDS),
+    cur: 0,
+    unprotCount: 0,
+    fifthJumpUsed: false,
+    fifthJumpPending: false,
+    history: []
+  };
+
+  document.getElementById('screen-setup').classList.remove('active');
+  document.getElementById('screen-draft').classList.add('active');
+  document.getElementById('resume-banner').style.display = 'none';
+  render();
+  showWhoAmI();
+}
+
+function resumeDraft() {
+  if (!S) return;
+  document.getElementById('screen-setup').classList.remove('active');
+  document.getElementById('screen-draft').classList.add('active');
+  render();
+  showWhoAmI();
+}
+
+// ===================== PICK LOGIC =====================
+
+function getCurPick() { return S.picks[S.cur]; }
+function getCurOwner() { const p = getCurPick(); return p ? S.owners[p.ownerIdx] : null; }
+
+function saveHistory() {
+  S.history.push(JSON.parse(JSON.stringify({
+    picks: S.picks, owners: S.owners, cur: S.cur,
+    unprotCount: S.unprotCount, fifthJumpUsed: S.fifthJumpUsed,
+    fifthJumpPending: S.fifthJumpPending
+  })));
+}
+
+function draftUnprotected() {
+  const inp = document.getElementById('pick-name-input');
+  if (!inp || !inp.value.trim()) { showToast('Enter a player name'); return; }
+  saveHistory();
+  const pick = getCurPick();
+  const owner = getCurOwner();
+  const isFifthJump = S.fifthJumpPending && pick.ownerIdx === S.fifthPos;
+
+  pick.player = inp.value.trim();
+
+  if (isFifthJump) {
+    pick.type = 'fifth-jump';
+    S.fifthJumpUsed = true;
+    S.fifthJumpPending = false;
+    S.cur++;
+  } else {
+    pick.type = 'unprotected';
+    S.unprotCount++;
+    if (!owner.sealBroken) {
+      owner.sealBroken = true;
+      showToast(`${owner.name}'s seal broken!`);
+    }
+    if (S.unprotCount === 2 && !S.fifthJumpUsed) {
+      S.fifthJumpPending = true;
+      insertFifthJump();
+    }
+    S.cur++;
+  }
+  render();
+}
+
+function keepOwn(protIdx) {
+  saveHistory();
+  const pick = getCurPick();
+  const owner = getCurOwner();
+  owner.protected[protIdx].used = true;
+  pick.player = owner.protected[protIdx].name;
+  pick.type = 'kept';
+  S.cur++;
+  render();
+}
+
+function insertFifthJump() {
+  const nextIdx = S.cur + 1;
+  const refPick = S.picks[S.cur];
+  S.picks.splice(nextIdx, 0, {
+    round: refPick.round, slot: refPick.slot,
+    ownerIdx: S.fifthPos,
+    player: null, type: null, isSkipped: false, isFifthJump: true
+  });
+  markFinalRoundSkip();
+  showToast(`${S.owners[S.fifthPos].name} gets the jump pick!`);
+}
+
+function markFinalRoundSkip() {
+  const finalPicks = S.picks.filter(p =>
+    p.round === ROUNDS && p.ownerIdx === S.fifthPos && !p.isFifthJump && !p.player);
+  if (finalPicks.length > 0) finalPicks[finalPicks.length-1].isSkipped = true;
+}
+
+function undoPick() {
+  if (!S.history.length) return;
+  const prev = S.history.pop();
+  S.picks = prev.picks;
+  S.owners = prev.owners;
+  S.cur = prev.cur;
+  S.unprotCount = prev.unprotCount;
+  S.fifthJumpUsed = prev.fifthJumpUsed;
+  S.fifthJumpPending = prev.fifthJumpPending;
+  render();
+  showToast('Pick undone');
+}
+
+// ===================== RESET =====================
+
+function openResetModal() { document.getElementById('reset-modal').classList.add('open'); }
+function closeResetModal() { document.getElementById('reset-modal').classList.remove('open'); }
+
+function softReset() {
+  closeResetModal();
+  document.getElementById('screen-draft').classList.remove('active');
+  document.getElementById('screen-setup').classList.add('active');
+  if (S) document.getElementById('resume-banner').style.display = 'flex';
+}
+
+function hardReset() {
+  if (!confirm('This will permanently wipe the entire draft. Are you absolutely sure?')) return;
+  closeResetModal();
+  S = null;
+  ownerNames = Array.from({length:N}, (_,i) => `Owner ${i+1}`);
+  protectedPlayers = Array.from({length:N}, () => []);
+  fifthPos = 0;
+  document.getElementById('screen-draft').classList.remove('active');
+  document.getElementById('screen-setup').classList.add('active');
+  document.getElementById('resume-banner').style.display = 'none';
+  showSetupTab('order');
+  renderOrderList();
+  showToast('Draft wiped');
+}
+
+// ===================== RENDER =====================
+
+function render() {
+  renderOnClock();
+  renderPickPanel();
+  renderProtPanel();
+  renderStatusPanel();
+  renderBoard();
+  renderRosterPanel();
+  document.getElementById('unprot-count').textContent = S.unprotCount;
+  document.getElementById('undo-btn').disabled = S.history.length === 0;
+}
+
+function renderOnClock() {
+  const owner = getCurOwner(); const pick = getCurPick();
+  const el = document.getElementById('on-clock-panel');
+  if (!owner || !pick) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--text3);">Draft complete!</div>';
+    return;
+  }
+  const isFifthJump = S.fifthJumpPending && pick.ownerIdx === S.fifthPos;
+  el.innerHTML = `
+    <div class="slabel">On the clock</div>
+    <div class="clock-name">${owner.name}</div>
+    <div class="clock-meta">Pick ${S.cur+1} &nbsp;·&nbsp; Round ${pick.round}</div>
+    <div style="margin-top:5px;">
+      ${owner.sealBroken ? '<span class="badge b-broken">Seal broken</span>' : '<span class="badge b-intact">Seal intact</span>'}
+      ${owner.isFifth && !S.fifthJumpUsed ? '<span class="badge b-fifth">★ 5th place</span>' : ''}
+      ${isFifthJump ? '<span class="badge b-jump">Jump pick</span>' : ''}
+    </div>`;
+}
+
+let activePTab = 'unprot';
+function renderPickPanel() {
+  const owner = getCurOwner(); const pick = getCurPick();
+  const el = document.getElementById('pick-panel');
+  if (!owner || !pick) { el.innerHTML = ''; return; }
+  const hasOwn = !owner.sealBroken && owner.protected.some(p => !p.used);
+  const isFifthJump = S.fifthJumpPending && pick.ownerIdx === S.fifthPos;
+  let warn = '';
+  if (!owner.sealBroken && !isFifthJump)
+    warn = `<div class="warn">This will break ${owner.name}'s seal — their remaining protected players become available to everyone.</div>`;
+  if (isFifthJump && !owner.sealBroken)
+    warn = `<div class="info">5th place jump — seal stays intact after this pick.</div>`;
+  if (isFifthJump && owner.sealBroken)
+    warn = `<div class="info">5th place jump pick.</div>`;
+
+  el.innerHTML = `
+    <div class="slabel">Make pick</div>
+    <div class="pick-tabs">
+      <button class="ptab" id="ptab-unprot" onclick="switchPTab('unprot')">Unprotected</button>
+      <button class="ptab" id="ptab-own" onclick="switchPTab('own')" ${!hasOwn?'disabled':''}>Own player</button>
+    </div>
+    <div id="ptcont-unprot">
+      <input type="text" id="pick-name-input" class="pick-input" placeholder="Player name" style="margin-bottom:6px;"
+        onkeydown="if(event.key==='Enter')draftUnprotected()"/>
+      ${warn}
+      <button class="btn primary" style="width:100%;margin-top:8px;" onclick="draftUnprotected()">Draft player</button>
+    </div>
+    <div id="ptcont-own" style="display:none;">
+      <div class="info">Use Keep buttons below, or switch to Unprotected to break seal.</div>
+    </div>`;
+  switchPTab(hasOwn ? 'own' : 'unprot');
+}
+
+function switchPTab(tab) {
+  activePTab = tab;
+  ['unprot','own'].forEach(t => {
+    const tb = document.getElementById(`ptab-${t}`);
+    const ct = document.getElementById(`ptcont-${t}`);
+    if (tb) tb.classList.toggle('active', t===tab);
+    if (ct) ct.style.display = t===tab ? 'block' : 'none';
+  });
+}
+
+// TODO (player list phase): replace hardcoded "free" label with live availability status.
+// Each player in a broken-seal roster should show "drafted" if they've been picked by someone
+// else since the seal broke, or "available" if still unclaimed. This requires a shared
+// availability map (playerName -> {status, draftedBy}) that gets updated on every pick.
+// Same map drives the free agent search pool status. Wire in during Sleeper API integration.
+function renderProtPanel() {
+  const owner = getCurOwner();
+  const el = document.getElementById('prot-panel');
+  if (!owner) { el.innerHTML = ''; return; }
+  if (!owner.protected.length) {
+    el.innerHTML = `<div class="slabel">Previous roster</div><div style="font-size:11px;color:var(--text3);">None</div>`;
+    return;
+  }
+  const label = owner.sealBroken
+    ? `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><div class="slabel" style="margin-bottom:0;">${owner.name}'s previous roster</div><span style="font-size:9px;color:var(--red);">now available</span></div>`
+    : `<div class="slabel">${owner.name}'s protected</div>`;
+  el.innerHTML = label +
+    owner.protected.map((p,i) => `
+      <div class="prot-item ${p.used?'used':''}">
+        <span class="prot-item-name" style="${owner.sealBroken && !p.used ? 'color:var(--text3);' : ''}">${p.name}</span>
+        ${p.used
+          ? `<span style="font-size:9px;color:var(--text3);">kept</span>`
+          : owner.sealBroken
+            ? `<span style="font-size:9px;color:var(--red);">free</span>`
+            : `<button class="btn xs" onclick="keepOwn(${i})">Keep</button>`}
+      </div>`).join('');
+}
+
+function renderStatusPanel() {
+  const el = document.getElementById('status-panel');
+  el.innerHTML = '<div class="slabel">Seals</div>' +
+    S.owners.map(o => `
+      <div class="status-row">
+        <span class="status-name">${o.name}</span>
+        <span style="display:flex;align-items:center;gap:4px;">
+          <span class="dot ${o.sealBroken?'d-broken':'d-intact'}"></span>
+          <span style="font-size:10px;color:var(--text3);">${o.sealBroken?'broken':'intact'}</span>
+          ${o.isFifth && !S.fifthJumpUsed ? '<span style="font-size:10px;color:var(--amber);">★</span>' : ''}
+        </span>
+      </div>`).join('');
+}
+
+function renderBoard() {
+  const t = document.getElementById('draft-board');
+  // fixed width per owner column to fit 10 in ~620px (sidebar is 200px + 12px gap)
+  const colW = 62;
+  let html = `<colgroup><col style="width:26px"/>` +
+    S.owners.map(() => `<col style="width:${colW}px"/>`).join('') + '</colgroup>';
+  html += '<thead><tr><th class="rnd-th">Rd</th>' +
+    S.owners.map(o => `<th class="owner-th">${o.name.split(' ')[0].substring(0,7)}</th>`).join('') +
+    '</tr></thead><tbody>';
+
+  for (let r = 0; r < ROUNDS; r++) {
+    html += `<tr><td class="rnd-td">${r+1}</td>`;
+    S.owners.forEach((_, oi) => {
+      const pick = S.picks.find(p => p.round===r+1 && p.ownerIdx===oi && !p.isFifthJump);
+      const jumpPick = S.picks.find(p => p.round===r+1 && p.ownerIdx===oi && p.isFifthJump);
+      const disp = pick || jumpPick;
+      if (!disp) { html += '<td></td>'; return; }
+      const idx = S.picks.indexOf(disp);
+      const isCur = idx === S.cur;
+
+      let cellCls = '';
+      if (disp.isSkipped) cellCls = 'cell-skip';
+      else if (isCur) cellCls = 'cell-cur';
+      else if (disp.type === 'kept') cellCls = 'cell-kept';
+      else if (disp.type === 'fifth-jump') cellCls = 'cell-jump';
+      else if (disp.type === 'unprotected') cellCls = 'cell-unprot';
+      else cellCls = 'cell-empty';
+
+      html += `<td><div class="cell ${cellCls}">`;
+      html += `<div class="cell-pnum">#${idx+1}</div>`;
+      if (disp.isSkipped) html += `<div class="cell-skip-text">skip</div>`;
+      else if (disp.player) html += `<div class="cell-player">${disp.player}</div>`;
+      else if (isCur) html += `<div class="cell-picking">picking…</div>`;
+      html += '</div></td>';
+    });
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  t.innerHTML = html;
+  setTimeout(() => {
+    const c = t.querySelector('.cell-cur');
+    if (c) c.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }, 100);
+}
+
+// ===================== UTILS =====================
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ===================== WHO AM I =====================
+
+let myOwnerIdx = 0;
+
+function showWhoAmI() {
+  const sel = document.getElementById('wai-select');
+  sel.innerHTML = S.owners.map((o,i) => `<option value="${i}">${o.name}</option>`).join('');
+  sel.value = myOwnerIdx;
+  document.getElementById('wai-modal').style.display = 'flex';
+}
+
+function confirmWhoAmI() {
+  myOwnerIdx = parseInt(document.getElementById('wai-select').value);
+  document.getElementById('wai-modal').style.display = 'none';
+  // default the roster panel to this owner
+  const rsel = document.getElementById('roster-team-select');
+  if (rsel) { rsel.value = myOwnerIdx; renderRosterPanel(); }
+}
+
+// ===================== RIGHT SIDEBAR =====================
+
+let rightOpen = false;
+
+function toggleRightSidebar() {
+  rightOpen = !rightOpen;
+  const layout = document.getElementById('draft-layout');
+  const sidebar = document.getElementById('right-sidebar');
+  const btn = document.getElementById('toggle-right-btn');
+  if (rightOpen) {
+    sidebar.style.display = 'flex';
+    sidebar.style.flexDirection = 'column';
+    layout.classList.add('with-right');
+    btn.textContent = 'Research ◂';
+    populateRosterSelect();
+    renderRosterPanel();
+  } else {
+    sidebar.style.display = 'none';
+    layout.classList.remove('with-right');
+    btn.textContent = 'Research ▸';
+  }
+}
+
+function toggleRPanel(id) {
+  const body = document.getElementById(`rbody-${id}`);
+  const toggle = document.getElementById(`rtoggle-${id}`);
+  if (!body || !toggle) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  toggle.classList.toggle('open', !isOpen);
+}
+
+function populateRosterSelect() {
+  if (!S) return;
+  const sel = document.getElementById('roster-team-select');
+  if (!sel) return;
+  sel.innerHTML = S.owners.map((o,i) => `<option value="${i}">${o.name}</option>`).join('');
+  sel.value = myOwnerIdx;
+}
+
+function renderRosterPanel() {
+  if (!S || !rightOpen) return;
+  const sel = document.getElementById('roster-team-select');
+  const listEl = document.getElementById('roster-panel-list');
+  if (!sel || !listEl) return;
+  const idx = parseInt(sel.value);
+  const owner = S.owners[idx];
+  if (!owner) return;
+
+  if (!owner.protected.length) {
+    listEl.innerHTML = `<div style="font-size:11px;color:var(--text3);">No protected players entered.</div>`;
+    return;
+  }
+
+  const sealBroken = owner.sealBroken;
+  const headerNote = sealBroken
+    ? `<div style="font-size:10px;color:var(--red);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);">Seal broken — roster now public</div>`
+    : `<div style="font-size:10px;color:var(--green);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);">Seal intact</div>`;
+
+  listEl.innerHTML = headerNote + owner.protected.map(p => {
+    let statusHtml = '';
+    if (p.used) {
+      statusHtml = `<span class="roster-status rs-kept">kept</span>`;
+    } else if (sealBroken) {
+      // TODO (player list phase): replace 'free' with live 'available'/'drafted' status
+      statusHtml = `<span class="roster-status rs-free">free</span>`;
+    } else {
+      statusHtml = `<span class="roster-status rs-protected">protected</span>`;
+    }
+    return `<div class="roster-item ${p.used ? 'used' : ''}">
+      <span class="roster-item-name">${p.name}</span>
+      ${statusHtml}
+    </div>`;
+  }).join('');
+}
+
+// init
+renderOrderList();
+renderRandInputs();
+</script>
+</body>
+</html>
