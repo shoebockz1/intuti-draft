@@ -1,7 +1,7 @@
 // Thin client for the server's commissioner session endpoints
 // (/api/commissioner/*). See server/src/routes/commissioner.ts.
 
-const API_BASE = "https://localhost:4000";
+import { API_BASE } from "./config";
 
 export async function commissionerLogin(passcode: string): Promise<boolean> {
   const res = await fetch(`${API_BASE}/api/commissioner/login`, {

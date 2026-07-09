@@ -4,8 +4,7 @@
 // local reducer, it only mirrors what the server returns (see AppContext).
 
 import type { DraftState, ProtectedPlayer } from "../engine/types";
-
-const API_BASE = "https://localhost:4000";
+import { API_BASE } from "./config";
 
 /** GET /api/draft/state shape when no draft is in progress. */
 export interface NotStarted {

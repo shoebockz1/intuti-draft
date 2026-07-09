@@ -1,10 +1,7 @@
 // Thin client for the server's Sleeper-backed /api/players route.
 // See HANDOFF.md Section 4 and server/src/sleeper/sleeperService.ts.
 
-// The server always runs over HTTPS locally on port 4000 (see server/src/index.ts
-// and its mkcert-based cert setup) — there's no env-based config on the client
-// side yet, so this mirrors the server's fixed dev port directly.
-const API_BASE = "https://localhost:4000";
+import { API_BASE } from "./config";
 
 export interface RemotePlayer {
   playerId: string;
