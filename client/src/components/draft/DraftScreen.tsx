@@ -9,9 +9,20 @@ import WhoAmIModal from "../modals/WhoAmIModal";
 import ResetModal from "../modals/ResetModal";
 
 export default function DraftScreen() {
-  const { draft, isCommissioner, undoLastPick, rightSidebarOpen, setRightSidebarOpen, setResetModalOpen } = useApp();
+  const {
+    draft,
+    isCommissioner,
+    undoLastPick,
+    rightSidebarOpen,
+    setRightSidebarOpen,
+    setResetModalOpen,
+    myOwnerIdx,
+    setWhoAmIOpen,
+  } = useApp();
 
   if (!draft) return null;
+
+  const me = draft.owners[myOwnerIdx];
 
   const undoDisabled = draft.history.length === 0;
 
@@ -23,6 +34,15 @@ export default function DraftScreen() {
           <div className="league-sub">Fantasy Football · Live Draft</div>
         </div>
         <div className="header-actions">
+          {me && (
+            <button
+              className="btn sm"
+              onClick={() => setWhoAmIOpen(true)}
+              title="Change who you're viewing this as"
+            >
+              You: {me.name} (change)
+            </button>
+          )}
           <div className="counter-pill">
             Unprotected: <span className="counter-big">{draft.unprotCount}</span>
             <span style={{ fontSize: 10, color: "var(--text3)" }}>/3</span>
