@@ -3,7 +3,7 @@
 Living list of open items needed to make this fully functional and live for all 10 owners.
 Statuses: **Not started** / **In progress** / **Done, but untested**
 
-Last updated: 2026-07-09 (night)
+Last updated: 2026-07-09 (late night)
 
 ---
 
@@ -21,7 +21,6 @@ Last updated: 2026-07-09 (night)
 ## Deferred features (explicitly, by prior decision)
 
 - **Not started** — Trades. Requirements only partially resolved (see `HANDOFF.md` Section 3) — pick-rebalancing mechanics still undesigned.
-- **Not started** — Free Agents research panel — still a labeled placeholder, not wired to live Sleeper availability data or the pick-making flow.
 
 ## Hardening / lower-risk gaps
 

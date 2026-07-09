@@ -2,7 +2,7 @@
 
 Items completed and verified working, moved off `BACKLOG.md`.
 
-Last updated: 2026-07-09 (night)
+Last updated: 2026-07-09 (late night)
 
 ---
 
@@ -26,6 +26,7 @@ Last updated: 2026-07-09 (night)
 - **Done** — Fixed /admin losing all setup data (owner names, protected players, 5th place) on revisit after starting a draft — it now pre-fills from the live server-side DraftState instead of resetting to blank defaults. Surfaced and fixed a related danger: re-clicking "Start draft" while one's already in progress now requires explicit confirmation instead of silently overwriting it.
 - **Done** — Moved Reset off the shared board entirely (Undo stays); it now lives only on the commissioner-gated `/admin` screen, reducing the chance of a stray click on a shared/passed-around device during a live draft. Dropped the now-pointless "soft reset" tier in the process. Verified with a full click-through on the live production site: setup data retention, the wipe-guard confirmation prompt, and Reset's absence from the board all confirmed working.
 - **Done** — Hosting fully confirmed reachable: loaded `https://intuti-draft-board.onrender.com` from a phone on cellular data (off Robin's home network), proving it's genuinely reachable by devices other than the one it was built on — this was the actual goal of hosting it in the first place.
+- **Done** — Free Agents research panel wired up: live search reusing the existing Sleeper-backed endpoint, cross-referenced against the polled live draft to show available/drafted/still-protected status, and drafts directly through the same pick-making path as the Unprotected tab. Verified locally with a real draft: correctly distinguished a same-last-name collision from an actual protected player, and a live draft-from-panel click correctly broke the seal and advanced the turn. **Note**: verified in local dev only so far — not yet re-deployed to the Render production site (Auto-Deploy is off; needs a manual "Deploy latest commit" before it's live for owners).
 
 ---
 
