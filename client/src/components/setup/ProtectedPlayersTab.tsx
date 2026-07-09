@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { NUM_OWNERS } from "../../engine/types";
-import { randPlayerName } from "../../data/testNames";
-import { fetchAllPlayers, searchPlayers, type RemotePlayer } from "../../api/players";
+import { ROSTERS_2025 } from "../../data/rosters2025";
+import { searchPlayers, type RemotePlayer } from "../../api/players";
 
 const SEARCH_DEBOUNCE_MS = 200;
 const MAX_SUGGESTIONS = 8;
 
 export default function ProtectedPlayersTab() {
-  const { ownerNames, protectedPlayers, setProtectedPlayers, setSetupTab, startDraft, showToast } = useApp();
+  const { ownerNames, setOwnerNames, protectedPlayers, setProtectedPlayers, setSetupTab, startDraft, showToast } =
+    useApp();
   const [inputs, setInputs] = useState<string[]>(() => Array.from({ length: NUM_OWNERS }, () => ""));
   // Sleeper-backed search suggestions per owner row. This is purely additive —
   // the free-text input/Add flow below still works exactly as before even if
@@ -72,41 +73,10 @@ export default function ProtectedPlayersTab() {
     }, SEARCH_DEBOUNCE_MS);
   }
 
-  async function fillTestData() {
-    const usedNames = new Set<string>();
-    protectedPlayers.forEach((arr) => arr.forEach((p) => usedNames.add(p.name)));
-    const totalNeeded = protectedPlayers.reduce((sum, arr) => sum + Math.max(0, 17 - arr.length), 0);
-
-    let realNames: string[] = [];
-    try {
-      const players = await fetchAllPlayers();
-      const shuffled = [...players].sort(() => Math.random() - 0.5);
-      for (const p of shuffled) {
-        if (realNames.length >= totalNeeded) break;
-        if (usedNames.has(p.fullName)) continue;
-        usedNames.add(p.fullName);
-        realNames.push(p.fullName);
-      }
-    } catch {
-      // Server not running / Sleeper unreachable — fall back to the
-      // generated fake-name list below so this button still works offline.
-    }
-
-    let nameIdx = 0;
-    const next = protectedPlayers.map((arr) => {
-      const needed = Math.max(0, 17 - arr.length);
-      const additions = Array.from({ length: needed }, () => {
-        const name = nameIdx < realNames.length ? realNames[nameIdx++] : randPlayerName(usedNames);
-        return { name, used: false };
-      });
-      return [...arr, ...additions];
-    });
-    setProtectedPlayers(next);
-    showToast(
-      realNames.length > 0
-        ? "Test data filled with real players — add your last player per owner"
-        : "Test data filled — add your last player per owner",
-    );
+  function loadRosters2025() {
+    setOwnerNames(ROSTERS_2025.map((r) => r.teamName));
+    setProtectedPlayers(ROSTERS_2025.map((r) => r.players.map((name) => ({ name, used: false }))));
+    showToast("Loaded 2025 rosters — owner names and protected players replaced");
   }
 
   function clearTestData() {
@@ -126,14 +96,14 @@ export default function ProtectedPlayersTab() {
           borderBottom: "1px solid var(--border)",
         }}
       >
-        <button className="btn sm" onClick={fillTestData}>
-          Fill with test data (17 per owner)
+        <button className="btn sm" onClick={loadRosters2025}>
+          Load 2025 rosters
         </button>
         <button className="btn sm danger" onClick={clearTestData}>
           Clear all
         </button>
         <span style={{ fontSize: 11, color: "var(--text3)", marginLeft: 4 }}>
-          For testing only — replaces real rosters before draft day
+          Loads real 2025-season rosters for repeatable testing — overwrites owner names and player lists
         </span>
       </div>
 
