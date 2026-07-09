@@ -9,10 +9,9 @@ Last updated: 2026-07-09 (night)
 
 ## Blocking — needed before any real multi-owner draft
 
-- **Done, but untested** — Host the app on Render (`https://intuti-draft-board.onrender.com`) so all 10 owners can reach it. Live and verified via curl and a real browser: health check, static site + SPA routing (`/` and `/admin`), commissioner login/session persistence, Yahoo OAuth redirect, and a full setup→start→revisit→wipe-guard walkthrough all confirmed working. Still not done: everything so far has been from Robin's own computer — nobody has loaded the URL from a genuinely separate device yet, which is the actual test of "can the other 9 owners reach this."
 - **Not started** — Final human review pass of the "Load 2025 rosters" fixture data close to draft day, to catch any roster moves/trades since the source screenshots were taken.
-- **Not started** — Full 18-round, 10-owner rehearsal draft on the hosted (or at least multi-browser) version of the new server-authoritative architecture — only individual mechanics have been spot-checked so far, not a full run-through.
-- **Not started** — Mobile layout testing — owners will likely be on phones, layout hasn't been checked there yet.
+- **Not started** — Full 18-round, 10-owner rehearsal draft on the hosted version of the new server-authoritative architecture — only individual mechanics have been spot-checked so far, not a full run-through.
+- **Not started** — Optimize the mobile/tablet experience. The site is confirmed *reachable* on phones (loads correctly off-network), but the layout itself was designed/tested on desktop and hasn't been reviewed or tuned for small touch screens — owners will likely be using phones during the actual draft, so this is about usability there (tap targets, board scroll/layout, panel stacking, etc.), not just "does it load."
 
 ## Pending on external parties
 
