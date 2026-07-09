@@ -15,17 +15,15 @@ yahooRouter.get("/login", (req, res) => {
   }
   const state = crypto.randomBytes(16).toString("hex");
   req.session.yahooOauthState = state;
-  // eslint-disable-next-line no-console
-  console.log(`[yahoo] /login sessionID=${req.sessionID} generated state=${state}`);
   res.redirect(buildAuthorizeUrl(state));
 });
 
 yahooRouter.get("/callback", async (req, res) => {
-  const { code, state } = req.query;
-  // eslint-disable-next-line no-console
-  console.log(
-    `[yahoo] /callback sessionID=${req.sessionID} receivedState=${state} expectedState=${req.session.yahooOauthState} hasCode=${typeof code === "string"} fullQuery=${JSON.stringify(req.query)}`,
-  );
+  const { code, state, error, error_description: errorDescription } = req.query;
+  if (typeof error === "string") {
+    res.status(400).send(`Yahoo login failed: ${error} — ${errorDescription ?? "no details given"}`);
+    return;
+  }
   if (typeof code !== "string" || typeof state !== "string" || state !== req.session.yahooOauthState) {
     res.status(400).send("Yahoo login failed: invalid or expired state. Please try connecting again.");
     return;

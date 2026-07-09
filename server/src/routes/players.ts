@@ -1,20 +1,25 @@
 import { Router } from "express";
+import { getPlayers, searchPlayers } from "../sleeper/sleeperService";
 
-// Placeholder route structure for future Sleeper API proxying.
-// Not implemented yet — see HANDOFF.md Section 4 for the agreed plan:
-//   - GET /api/players/search?q=... -> proxy Sleeper player search for protected-player
-//     entry (with manual free-text fallback always preserved).
-//   - GET /api/players/random?count=... -> upgrade "fill with test data" to pull real
-//     Sleeper names instead of the generated fake ones.
-//   - GET /api/players/pool -> the eventual free-agent draft pool with available/drafted
-//     status, filtered to players active on an NFL roster at any point in the 2025 season
-//     (including injured/IR) plus incoming 2026 rookies, excluding long-retired players.
-// No Sleeper integration yet — this file exists only so the route is wired up and ready.
+// GET /api/players — full filtered/tagged Sleeper player list (from cache,
+//   fetching+caching from Sleeper first if the cache is empty/stale).
+// GET /api/players?search=... — case-insensitive substring match on fullName,
+//   so the client can do a live search box without downloading the whole list.
+//
+// See HANDOFF.md Section 4 for the agreed plan. Not yet built: /api/players/pool
+// (the eventual free-agent draft pool with live available/drafted status) — that
+// is explicitly future scope, see TODO comments in ProtectedPanel.tsx / ResearchSidebar.tsx.
 
 export const playersRouter = Router();
 
-playersRouter.get("/", (_req, res) => {
-  res.json({
-    message: "Player routes not implemented yet — Sleeper API integration is a future step.",
-  });
+playersRouter.get("/", async (req, res) => {
+  try {
+    const search = typeof req.query.search === "string" ? req.query.search : "";
+    const players = search ? await searchPlayers(search) : await getPlayers();
+    res.json({ players });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to fetch/serve players:", err);
+    res.status(502).json({ error: "Failed to fetch player data from Sleeper." });
+  }
 });

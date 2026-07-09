@@ -49,6 +49,36 @@
 .prot-tag-x { cursor: pointer; color: var(--text3); }
 .prot-tag-x:hover { color: var(--text); }
 
+/* Player search-select dropdown (Sleeper-backed). Free-text entry via the
+   same input remains fully available — this is an additive suggestion list,
+   not a replacement; see HANDOFF.md Section 4. */
+.prot-search-wrap { position: relative; flex: 1; }
+.prot-search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 20;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .4);
+}
+.prot-search-item {
+  padding: 7px 10px;
+  font-size: 12px;
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.prot-search-item:hover { background: var(--bg2); color: var(--text); }
+.prot-search-name { color: var(--text); }
+.prot-search-meta { color: var(--text3); font-size: 11px; white-space: nowrap; }
+
 /* RANDOMIZER TAB */
 .rand-row {
   display: flex;
