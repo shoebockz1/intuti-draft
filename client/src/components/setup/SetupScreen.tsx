@@ -5,7 +5,7 @@ import ProtectedPlayersTab from "./ProtectedPlayersTab";
 import OrderRandomizerTab from "./OrderRandomizerTab";
 
 export default function SetupScreen() {
-  const { setupTab, setSetupTab, draft } = useApp();
+  const { setupTab, setSetupTab, draft, hardReset } = useApp();
   const { navigate } = useRouter();
 
   return (
@@ -19,9 +19,20 @@ export default function SetupScreen() {
 
       {draft && (
         <div className="resume-banner">
-          Draft in progress —{" "}
-          <button className="btn sm primary" onClick={() => navigate("/")}>
-            View draft board
+          <span>
+            Draft in progress —{" "}
+            <button className="btn sm primary" onClick={() => navigate("/")}>
+              View draft board
+            </button>
+          </span>
+          {/* Reset lives here, admin-only, rather than on the shared board
+              — see DraftScreen.tsx for why. No separate "soft reset" tier
+              anymore: navigating away without wiping is just... navigating
+              away, since this screen already only exists behind the
+              commissioner passcode. hardReset still has its own native
+              confirm() as the one safety check before it wipes anything. */}
+          <button className="btn sm danger" onClick={() => void hardReset()}>
+            Wipe draft &amp; start over
           </button>
         </div>
       )}

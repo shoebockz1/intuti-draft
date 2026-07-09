@@ -48,7 +48,6 @@ interface AppContextValue {
   // commissioner-gated actions
   startDraft: () => Promise<void>;
   undoLastPick: () => Promise<void>;
-  softReset: () => void;
   hardReset: () => Promise<void>;
 
   // pick actions — open to everyone, no commissioner check (see HANDOFF.md: trusted friend group, no turn locking)
@@ -62,10 +61,6 @@ interface AppContextValue {
   setWhoAmIOpen: (v: boolean) => void;
   rightSidebarOpen: boolean;
   setRightSidebarOpen: (v: boolean) => void;
-
-  // reset modal
-  resetModalOpen: boolean;
-  setResetModalOpen: (v: boolean) => void;
 
   // toast
   toast: string | null;
@@ -90,7 +85,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [myOwnerIdx, setMyOwnerIdx] = useState(0);
   const [whoAmIOpen, setWhoAmIOpen] = useState(false);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
-  const [resetModalOpen, setResetModalOpen] = useState(false);
 
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -128,6 +122,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const startDraft = useCallback(async () => {
+    // A draft already exists server-side (e.g. the commissioner revisited
+    // /admin after starting one) — starting again would silently wipe it.
+    // Require explicit confirmation, matching how hardReset protects the
+    // other destructive path.
+    if (draft) {
+      const confirmed = window.confirm(
+        `A draft is already in progress (pick ${draft.cur + 1} of ${draft.picks.length}). ` +
+          "Starting again will WIPE the current draft and cannot be undone. Continue?",
+      );
+      if (!confirmed) return;
+    }
     try {
       const state = await startDraftOnServer(ownerNames, protectedPlayers, fifthPos);
       setDraft(state);
@@ -135,7 +140,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Failed to start draft.");
     }
-  }, [ownerNames, protectedPlayers, fifthPos, navigate, showToast]);
+  }, [draft, ownerNames, protectedPlayers, fifthPos, navigate, showToast]);
 
   const undoLastPick = useCallback(async () => {
     try {
@@ -147,21 +152,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [showToast]);
 
-  // "Soft reset" (Return to setup) never mutates server state — see the long
-  // comment in server/src/routes/draft.ts explaining why there is no
-  // POST /api/draft/reset/soft route. The draft keeps running server-side
-  // regardless of which screen anyone is looking at; this is purely a
-  // client-side navigation back to /admin.
-  const softReset = useCallback(() => {
-    setResetModalOpen(false);
-    navigate("/admin");
-  }, [navigate]);
-
   const hardReset = useCallback(async () => {
     if (!window.confirm("This will permanently wipe the entire draft. Are you absolutely sure?")) return;
     try {
       await hardResetDraft();
-      setResetModalOpen(false);
       setDraft(null);
       setOwnerNames(defaultOwnerNames());
       setProtectedPlayers(defaultProtectedPlayers());
@@ -217,7 +211,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsCommissioner,
     startDraft,
     undoLastPick,
-    softReset,
     hardReset,
     keepOwnPick,
     draftUnprotectedPick,
@@ -227,8 +220,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setWhoAmIOpen,
     rightSidebarOpen,
     setRightSidebarOpen,
-    resetModalOpen,
-    setResetModalOpen,
     toast,
     showToast,
   };

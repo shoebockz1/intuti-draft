@@ -11,7 +11,7 @@ import SetupScreen from "../components/setup/SetupScreen";
 // confirms a valid commissioner session (set by a successful
 // POST /api/commissioner/login).
 export default function AdminRoute() {
-  const { isCommissioner, setIsCommissioner, setDraft } = useApp();
+  const { isCommissioner, setIsCommissioner, setDraft, setOwnerNames, setProtectedPlayers, setFifthPos } = useApp();
   const { navigate } = useRouter();
   const [checking, setChecking] = useState(true);
   const [passcode, setPasscode] = useState("");
@@ -36,13 +36,29 @@ export default function AdminRoute() {
   // "draft in progress" resume banner in SetupScreen reflects reality, and
   // so navigating to "/" right after Start Draft shows current data
   // immediately instead of waiting for the board's first poll tick).
+  //
+  // If a draft is already in progress, also pre-fill the setup form fields
+  // (owner names, protected players, 5th place) from that live state. Before
+  // this, revisiting /admin after starting a draft showed blank defaults —
+  // the setup form never had any memory of what was actually submitted,
+  // only the server's DraftState did. This runs once per /admin visit, not
+  // on a poll loop, so it won't clobber in-progress edits.
   useEffect(() => {
     fetchDraftState()
-      .then((data) => setDraft(isDraftInProgress(data) ? data : null))
+      .then((data) => {
+        if (isDraftInProgress(data)) {
+          setDraft(data);
+          setOwnerNames(data.owners.map((o) => o.name));
+          setProtectedPlayers(data.owners.map((o) => o.protected));
+          setFifthPos(data.fifthPos);
+        } else {
+          setDraft(null);
+        }
+      })
       .catch(() => {
         // Best-effort only — BoardRoute's own polling is the source of truth once there.
       });
-  }, [setDraft]);
+  }, [setDraft, setOwnerNames, setProtectedPlayers, setFifthPos]);
 
   async function submitLogin() {
     setLoginError(null);
