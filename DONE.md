@@ -2,7 +2,7 @@
 
 Items completed and verified working, moved off `BACKLOG.md`.
 
-Last updated: 2026-07-09
+Last updated: 2026-07-09 (evening)
 
 ---
 
@@ -19,6 +19,10 @@ Last updated: 2026-07-09
 - **Done** — Pre-hard-reset snapshot safety net — the server saves the last 5 pre-reset states, restorable via a commissioner-only endpoint. Verified end-to-end: wiped a live draft, restored it, confirmed the exact prior pick and on-the-clock owner came back correctly.
 - **Done** — Fixed a session-cookie bug (`SameSite=Lax` silently dropping the commissioner session on cross-scheme `fetch()` POSTs) found during verification of the above.
 - **Done** — Added a "You: `<name>` (change)" control so an owner can correct a wrong "Who are you?" selection instead of it being stuck for the session.
+- **Done** — Restructured the server to serve the built client as static files (with an SPA fallback) in production, collapsing client + server into one deployable service and sidestepping the cross-origin cookie complexity entirely for hosting.
+- **Done** — Real commissioner passcode set (replacing the local test placeholder), both in local `.env` and on Render.
+- **Done** — App deployed to Render at `https://intuti-draft-board.onrender.com`. Fixed a build failure along the way: Render's build step runs with `NODE_ENV=production` already set, which is also npm's own signal to skip devDependencies — broke the build since `vite`/`typescript`/`@types/node` all live there. Fixed with `--include=dev` on both installs, verified by reproducing the exact failure locally before pushing the fix.
+- **Done** — Verified the live production deployment end-to-end via direct requests: health check, static site + SPA routing on both `/` and `/admin`, commissioner login with session persistence across requests, and the Yahoo OAuth redirect all confirmed working against the real hosted URL (not just localhost).
 
 ---
 

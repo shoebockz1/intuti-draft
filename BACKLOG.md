@@ -3,14 +3,13 @@
 Living list of open items needed to make this fully functional and live for all 10 owners.
 Statuses: **Not started** / **In progress** / **Done, but untested**
 
-Last updated: 2026-07-09
+Last updated: 2026-07-09 (evening)
 
 ---
 
 ## Blocking — needed before any real multi-owner draft
 
-- **In progress** — Host the app on Render so all 10 owners can reach it (currently only runs on Robin's own machine). Code changes done and verified locally: server now serves the built client as static files + SPA fallback in production (single combined service, avoids the cross-origin cookie complexity entirely), TLS-termination-aware (`trust proxy`, plain HTTP internally since Render terminates TLS at its edge), client API calls switched from a hardcoded `localhost:4000` to relative paths in production. Still open: actually create the Render account/service, set production env vars, add the production redirect URI to the Yahoo app, deploy, and verify from a real second device.
-- **Not started** — Replace the placeholder commissioner passcode (`test-passcode-123`) with a real secret in `server/.env` (and on the eventual host).
+- **Done, but untested** — Host the app on Render (`https://intuti-draft-board.onrender.com`) so all 10 owners can reach it. Live and verified via curl: health check, static site + SPA routing (`/` and `/admin`), commissioner login/session persistence, and the Yahoo OAuth redirect all confirmed working against the real production URL. Not yet done: an actual human loading it from a real second device (e.g. a phone) — everything so far has been verified from the command line, not a real browser on separate hardware.
 - **Not started** — Final human review pass of the "Load 2025 rosters" fixture data close to draft day, to catch any roster moves/trades since the source screenshots were taken.
 - **Not started** — Full 18-round, 10-owner rehearsal draft on the hosted (or at least multi-browser) version of the new server-authoritative architecture — only individual mechanics have been spot-checked so far, not a full run-through.
 - **Not started** — Mobile layout testing — owners will likely be on phones, layout hasn't been checked there yet.
