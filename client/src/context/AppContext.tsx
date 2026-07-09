@@ -1,10 +1,10 @@
-import React, { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { DraftState, ProtectedPlayer } from "../engine/types";
 import { NUM_OWNERS } from "../engine/types";
-import { createDraftState } from "../engine/draftEngine";
-import { draftReducer, type DraftAction } from "../engine/draftReducer";
+import { hardResetDraft, pickKeepOwn as apiPickKeepOwn, pickUnprotected as apiPickUnprotected, startDraftOnServer, undoPick as apiUndoPick } from "../api/draft";
+import { commissionerStatus } from "../api/commissioner";
+import { useRouter } from "../router/Router";
 
-export type Screen = "setup" | "draft";
 export type SetupTab = "order" | "protected" | "randomizer";
 
 function defaultOwnerNames(): string[] {
@@ -16,7 +16,7 @@ function defaultProtectedPlayers(): ProtectedPlayer[][] {
 }
 
 interface AppContextValue {
-  // setup data (persists across setup <-> draft, used to (re)build a DraftState)
+  // setup data (used to assemble the POST /api/draft/start payload)
   ownerNames: string[];
   setOwnerNames: (names: string[]) => void;
   protectedPlayers: ProtectedPlayer[][];
@@ -24,9 +24,7 @@ interface AppContextValue {
   fifthPos: number;
   setFifthPos: (i: number) => void;
 
-  // navigation
-  screen: Screen;
-  setScreen: (s: Screen) => void;
+  // navigation (within the setup flow at /admin)
   setupTab: SetupTab;
   setSetupTab: (t: SetupTab) => void;
 
@@ -34,16 +32,30 @@ interface AppContextValue {
   randOrder: string[] | null;
   setRandOrder: (o: string[] | null) => void;
 
-  // draft engine state
+  // server-sourced draft truth — no local reducer anymore. `draft` is a
+  // mirror of the server's authoritative DraftState, kept fresh by polling
+  // (see routes/BoardRoute.tsx) and by optimistic updates right after a pick
+  // action resolves. `setDraft` is exposed so those call sites can update it.
   draft: DraftState | null;
-  dispatchDraft: React.Dispatch<DraftAction>;
-  startDraft: () => void;
-  resumeDraft: () => void;
-  softReset: () => void;
-  hardReset: () => void;
-  resumeBannerVisible: boolean;
+  setDraft: (d: DraftState | null) => void;
 
-  // who-am-i / research
+  // commissioner session (checked once against the server; also updated by
+  // login/logout). Used to gate Undo/Reset UI on the shared board, and to
+  // decide what /admin renders.
+  isCommissioner: boolean;
+  setIsCommissioner: (v: boolean) => void;
+
+  // commissioner-gated actions
+  startDraft: () => Promise<void>;
+  undoLastPick: () => Promise<void>;
+  softReset: () => void;
+  hardReset: () => Promise<void>;
+
+  // pick actions — open to everyone, no commissioner check (see HANDOFF.md: trusted friend group, no turn locking)
+  keepOwnPick: (protIdx: number) => Promise<void>;
+  draftUnprotectedPick: (playerName: string) => Promise<void>;
+
+  // who-am-i / research (per-viewer UI convenience only, no enforcement)
   myOwnerIdx: number;
   setMyOwnerIdx: (i: number) => void;
   whoAmIOpen: boolean;
@@ -63,16 +75,17 @@ interface AppContextValue {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const { navigate } = useRouter();
+
   const [ownerNames, setOwnerNames] = useState<string[]>(defaultOwnerNames());
   const [protectedPlayers, setProtectedPlayers] = useState<ProtectedPlayer[][]>(defaultProtectedPlayers());
   const [fifthPos, setFifthPos] = useState(0);
 
-  const [screen, setScreen] = useState<Screen>("setup");
   const [setupTab, setSetupTab] = useState<SetupTab>("order");
   const [randOrder, setRandOrder] = useState<string[] | null>(null);
 
-  const [draft, dispatchDraft] = useReducer(draftReducer, null);
-  const [resumeBannerVisible, setResumeBannerVisible] = useState(false);
+  const [draft, setDraft] = useState<DraftState | null>(null);
+  const [isCommissioner, setIsCommissioner] = useState(false);
 
   const [myOwnerIdx, setMyOwnerIdx] = useState(0);
   const [whoAmIOpen, setWhoAmIOpen] = useState(false);
@@ -88,46 +101,104 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     toastTimer.current = setTimeout(() => setToast(null), 2500);
   }, []);
 
-  // surface toasts emitted by the draft engine reducer
+  // Whenever the draft goes from "not started" to "in progress" — whether
+  // because this tab just started it, or because a poll picked up a draft
+  // someone else started — prompt this viewer for "who are you" once. This
+  // is an honest, low-tech identity stand-in (see HANDOFF.md), not enforced.
+  const prevDraftRef = useRef<DraftState | null>(null);
   useEffect(() => {
-    if (draft?.lastToast) {
-      showToast(draft.lastToast);
-      dispatchDraft({ type: "DISMISS_TOAST" });
+    if (!prevDraftRef.current && draft) {
+      setWhoAmIOpen(true);
     }
-  }, [draft?.lastToast, showToast]);
-
-  const startDraft = useCallback(() => {
-    const newDraft = createDraftState(ownerNames, protectedPlayers, fifthPos);
-    dispatchDraft({ type: "INIT", state: newDraft });
-    setScreen("draft");
-    setResumeBannerVisible(false);
-    setWhoAmIOpen(true);
-  }, [ownerNames, protectedPlayers, fifthPos]);
-
-  const resumeDraft = useCallback(() => {
-    if (!draft) return;
-    setScreen("draft");
-    setWhoAmIOpen(true);
+    prevDraftRef.current = draft;
   }, [draft]);
 
+  // Check commissioner session once on load, regardless of which route we're
+  // on — this lets the shared board ("/") show/hide the commissioner-only
+  // Undo/Reset controls without requiring a visit to /admin first in the
+  // same tab. AdminRoute re-checks (and updates) this itself too.
+  useEffect(() => {
+    let cancelled = false;
+    commissionerStatus().then((ok) => {
+      if (!cancelled) setIsCommissioner(ok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const startDraft = useCallback(async () => {
+    try {
+      const state = await startDraftOnServer(ownerNames, protectedPlayers, fifthPos);
+      setDraft(state);
+      navigate("/");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to start draft.");
+    }
+  }, [ownerNames, protectedPlayers, fifthPos, navigate, showToast]);
+
+  const undoLastPick = useCallback(async () => {
+    try {
+      const { state, toast: t } = await apiUndoPick();
+      setDraft(state);
+      if (t) showToast(t);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to undo.");
+    }
+  }, [showToast]);
+
+  // "Soft reset" (Return to setup) never mutates server state — see the long
+  // comment in server/src/routes/draft.ts explaining why there is no
+  // POST /api/draft/reset/soft route. The draft keeps running server-side
+  // regardless of which screen anyone is looking at; this is purely a
+  // client-side navigation back to /admin.
   const softReset = useCallback(() => {
     setResetModalOpen(false);
-    setScreen("setup");
-    if (draft) setResumeBannerVisible(true);
-  }, [draft]);
+    navigate("/admin");
+  }, [navigate]);
 
-  const hardReset = useCallback(() => {
+  const hardReset = useCallback(async () => {
     if (!window.confirm("This will permanently wipe the entire draft. Are you absolutely sure?")) return;
-    setResetModalOpen(false);
-    dispatchDraft({ type: "RESET" });
-    setOwnerNames(defaultOwnerNames());
-    setProtectedPlayers(defaultProtectedPlayers());
-    setFifthPos(0);
-    setScreen("setup");
-    setSetupTab("order");
-    setResumeBannerVisible(false);
-    showToast("Draft wiped");
-  }, [showToast]);
+    try {
+      await hardResetDraft();
+      setResetModalOpen(false);
+      setDraft(null);
+      setOwnerNames(defaultOwnerNames());
+      setProtectedPlayers(defaultProtectedPlayers());
+      setFifthPos(0);
+      setSetupTab("order");
+      navigate("/admin");
+      showToast("Draft wiped");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to reset draft.");
+    }
+  }, [navigate, showToast]);
+
+  const keepOwnPick = useCallback(
+    async (protIdx: number) => {
+      try {
+        const { state, toast: t } = await apiPickKeepOwn(protIdx);
+        setDraft(state);
+        if (t) showToast(t);
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : "Failed to make pick.");
+      }
+    },
+    [showToast],
+  );
+
+  const draftUnprotectedPick = useCallback(
+    async (playerName: string) => {
+      try {
+        const { state, toast: t } = await apiPickUnprotected(playerName);
+        setDraft(state);
+        if (t) showToast(t);
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : "Failed to make pick.");
+      }
+    },
+    [showToast],
+  );
 
   const value: AppContextValue = {
     ownerNames,
@@ -136,19 +207,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setProtectedPlayers,
     fifthPos,
     setFifthPos,
-    screen,
-    setScreen,
     setupTab,
     setSetupTab,
     randOrder,
     setRandOrder,
     draft,
-    dispatchDraft,
+    setDraft,
+    isCommissioner,
+    setIsCommissioner,
     startDraft,
-    resumeDraft,
+    undoLastPick,
     softReset,
     hardReset,
-    resumeBannerVisible,
+    keepOwnPick,
+    draftUnprotectedPick,
     myOwnerIdx,
     setMyOwnerIdx,
     whoAmIOpen,

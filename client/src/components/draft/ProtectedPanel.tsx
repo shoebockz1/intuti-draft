@@ -7,7 +7,7 @@ import { getCurOwner } from "../../engine/draftEngine";
 // availability map (playerName -> {status, draftedBy}) that gets updated on every pick.
 // Same map drives the free agent search pool status. Wire in during Sleeper API integration.
 export default function ProtectedPanel() {
-  const { draft, dispatchDraft } = useApp();
+  const { draft, keepOwnPick } = useApp();
   if (!draft) return null;
 
   const owner = getCurOwner(draft);
@@ -45,7 +45,7 @@ export default function ProtectedPanel() {
           ) : owner.sealBroken ? (
             <span style={{ fontSize: 9, color: "var(--red)" }}>free</span>
           ) : (
-            <button className="btn xs" onClick={() => dispatchDraft({ type: "KEEP_OWN", protIdx: i })}>
+            <button className="btn xs" onClick={() => void keepOwnPick(i)}>
               Keep
             </button>
           )}

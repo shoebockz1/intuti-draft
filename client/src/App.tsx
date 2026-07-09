@@ -1,14 +1,14 @@
-import { AppProvider, useApp } from "./context/AppContext";
-import SetupScreen from "./components/setup/SetupScreen";
-import DraftScreen from "./components/draft/DraftScreen";
+import { AppProvider } from "./context/AppContext";
+import { RouterProvider, useRouter } from "./router/Router";
+import BoardRoute from "./routes/BoardRoute";
+import AdminRoute from "./routes/AdminRoute";
 import Toast from "./components/common/Toast";
 
 function Screens() {
-  const { screen } = useApp();
+  const { path } = useRouter();
   return (
     <div id="app">
-      {screen === "setup" && <SetupScreen />}
-      {screen === "draft" && <DraftScreen />}
+      {path === "/admin" ? <AdminRoute /> : <BoardRoute />}
       <Toast />
     </div>
   );
@@ -16,9 +16,11 @@ function Screens() {
 
 function App() {
   return (
-    <AppProvider>
-      <Screens />
-    </AppProvider>
+    <RouterProvider>
+      <AppProvider>
+        <Screens />
+      </AppProvider>
+    </RouterProvider>
   );
 }
 

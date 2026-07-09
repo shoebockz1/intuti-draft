@@ -1,10 +1,12 @@
 import { useApp } from "../../context/AppContext";
+import { useRouter } from "../../router/Router";
 import DraftOrderTab from "./DraftOrderTab";
 import ProtectedPlayersTab from "./ProtectedPlayersTab";
 import OrderRandomizerTab from "./OrderRandomizerTab";
 
 export default function SetupScreen() {
-  const { setupTab, setSetupTab, resumeBannerVisible, resumeDraft } = useApp();
+  const { setupTab, setSetupTab, draft } = useApp();
+  const { navigate } = useRouter();
 
   return (
     <div>
@@ -15,11 +17,11 @@ export default function SetupScreen() {
         </div>
       </div>
 
-      {resumeBannerVisible && (
+      {draft && (
         <div className="resume-banner">
           Draft in progress —{" "}
-          <button className="btn sm primary" onClick={resumeDraft}>
-            Resume draft
+          <button className="btn sm primary" onClick={() => navigate("/")}>
+            View draft board
           </button>
         </div>
       )}

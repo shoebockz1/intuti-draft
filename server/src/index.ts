@@ -8,6 +8,8 @@ import { config } from "./config";
 import { healthRouter } from "./routes/health";
 import { playersRouter } from "./routes/players";
 import { yahooRouter } from "./routes/yahoo";
+import { commissionerRouter } from "./routes/commissioner";
+import { draftRouter } from "./routes/draft";
 
 const app = express();
 
@@ -21,7 +23,14 @@ app.use(
     cookie: {
       secure: true, // we always serve over https, even locally (see certs/ + mkcert)
       httpOnly: true,
-      sameSite: "lax",
+      // The client (http://localhost:5173) and server (https://localhost:4000)
+      // differ in scheme, which browsers' "schemeful same-site" rules treat as
+      // cross-site even though it's the same host. SameSite=Lax then silently
+      // drops the cookie on plain fetch()/XHR POSTs (it only allows it on
+      // top-level navigations, which is why the Yahoo OAuth redirect flow
+      // never hit this but commissioner login + draft actions did). "None"
+      // requires Secure, which we already set.
+      sameSite: "none",
       maxAge: 1000 * 60 * 60 * 24, // 1 day — plenty for a once-a-year import session
     },
   }),
@@ -30,6 +39,8 @@ app.use(
 app.use("/api/health", healthRouter);
 app.use("/api/players", playersRouter);
 app.use("/api/yahoo", yahooRouter);
+app.use("/api/commissioner", commissionerRouter);
+app.use("/api/draft", draftRouter);
 
 const certDir = path.join(__dirname, "..", "certs");
 const keyPath = path.join(certDir, "localhost+2-key.pem");

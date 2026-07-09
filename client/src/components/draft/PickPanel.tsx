@@ -9,7 +9,7 @@ type PTab = "unprot" | "own";
 // by re-deriving the default tab every time the current pick changes (not
 // on every re-render, and not left as stale UI state).
 export default function PickPanel() {
-  const { draft, dispatchDraft, showToast } = useApp();
+  const { draft, draftUnprotectedPick, showToast } = useApp();
   const [activeTab, setActiveTab] = useState<PTab>("unprot");
   const [playerName, setPlayerName] = useState("");
 
@@ -44,7 +44,7 @@ export default function PickPanel() {
       showToast("Enter a player name");
       return;
     }
-    dispatchDraft({ type: "DRAFT_UNPROTECTED", playerName });
+    void draftUnprotectedPick(playerName);
     setPlayerName("");
   }
 

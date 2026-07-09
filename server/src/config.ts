@@ -14,6 +14,13 @@ export const config = {
   port: process.env.PORT ? Number(process.env.PORT) : 4000,
   clientOrigin: process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
   sessionSecret: process.env.SESSION_SECRET ?? "dev-only-insecure-secret",
+  // Shared passcode gating the commissioner-only setup screens (Draft Order,
+  // Protected Players, Order Randomizer tabs, Start Draft, Undo, Reset). This
+  // is a trusted-friend-group tool — a single shared secret, not per-user
+  // accounts. Left empty by default so an unconfigured server can never be
+  // logged into (see routes/commissioner.ts, which rejects login attempts
+  // when this is empty rather than treating "" === "" as a match).
+  commissionerPasscode: process.env.COMMISSIONER_PASSCODE ?? "",
   yahoo: {
     clientId: process.env.YAHOO_CLIENT_ID ?? "",
     clientSecret: process.env.YAHOO_CLIENT_SECRET ?? "",

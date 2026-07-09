@@ -103,8 +103,9 @@ export default function ResearchSidebar() {
             {/* TODO: wire Sleeper API here. Add search input + scrollable player list.
                 Each row: player name, position, team, status badge (available/drafted).
                 Drafting from here should call the same pick-making logic as the
-                Unprotected tab (dispatchDraft({ type: "DRAFT_UNPROTECTED", playerName }))
-                with the player prefilled, not a separate code path. */}
+                Unprotected tab (useApp().draftUnprotectedPick(playerName), which POSTs
+                to /api/draft/pick/unprotected) with the player prefilled, not a
+                separate code path. */}
           </div>
         </div>
       </div>

@@ -9,7 +9,7 @@ import WhoAmIModal from "../modals/WhoAmIModal";
 import ResetModal from "../modals/ResetModal";
 
 export default function DraftScreen() {
-  const { draft, dispatchDraft, rightSidebarOpen, setRightSidebarOpen, setResetModalOpen } = useApp();
+  const { draft, isCommissioner, undoLastPick, rightSidebarOpen, setRightSidebarOpen, setResetModalOpen } = useApp();
 
   if (!draft) return null;
 
@@ -30,12 +30,19 @@ export default function DraftScreen() {
           <button className="btn sm toggle-right-btn" onClick={() => setRightSidebarOpen(!rightSidebarOpen)}>
             {rightSidebarOpen ? "Research ◂" : "Research ▸"}
           </button>
-          <button className="btn sm" disabled={undoDisabled} onClick={() => dispatchDraft({ type: "UNDO" })}>
-            ↩ Undo
-          </button>
-          <button className="btn sm danger" onClick={() => setResetModalOpen(true)}>
-            Reset
-          </button>
+          {isCommissioner && (
+            <>
+              {/* Undo/Reset are commissioner-only per HANDOFF.md — these mutate/destroy
+                  shared state, unlike making a pick, which is open to everyone. Hidden
+                  entirely (not just disabled) for non-commissioner viewers. */}
+              <button className="btn sm" disabled={undoDisabled} onClick={() => void undoLastPick()}>
+                ↩ Undo
+              </button>
+              <button className="btn sm danger" onClick={() => setResetModalOpen(true)}>
+                Reset
+              </button>
+            </>
+          )}
         </div>
       </div>
 
