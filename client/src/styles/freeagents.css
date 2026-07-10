@@ -49,6 +49,12 @@
   min-width: 640px;
 }
 
+.fa-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+.fa-sortable:hover { color: var(--text2); }
+
 .fa-table th {
   font-size: 10px;
   font-weight: 400;

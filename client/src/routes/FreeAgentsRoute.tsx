@@ -5,6 +5,7 @@ import { useDraftPolling } from "../hooks/useDraftPolling";
 import { queryPlayers, type RemotePlayer } from "../api/players";
 import { getPlayerStatus } from "../engine/playerStatus";
 import { POSITION_STAT_COLUMNS } from "../data/freeAgentColumns";
+import { defaultDirectionFor, sortPlayers, type SortState } from "../data/freeAgentSort";
 
 // "/players" — dedicated Free Agent research page. Separate from the compact
 // sidebar widget on the draft board: this is for actually browsing/filtering
@@ -34,6 +35,7 @@ export default function FreeAgentsRoute() {
   const [players, setPlayers] = useState<RemotePlayer[]>([]);
   const [fetching, setFetching] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [sort, setSort] = useState<SortState | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -92,16 +94,38 @@ export default function FreeAgentsRoute() {
   const canDraft = draft.cur < draft.picks.length;
   const statColumns = position === "ALL" ? [] : (POSITION_STAT_COLUMNS[position] ?? []);
   const baseColumnCount = 6; // Player, Pos, Team, Injury, Rank, Status
+  const validSortColumnIds = ["name", "pos", "team", "injury", "rank", ...statColumns.map((c) => c.key)];
 
   // Most owners are here to see who's left, not to re-confirm who's already
   // gone — so "available" is the default view. Drafted+protected are
   // grouped into one toggle state (not split into two tabs), and "All" is
   // there for the rarer case of wanting to see everyone regardless of status.
-  const visiblePlayers = players.filter((p) => {
+  const filteredPlayers = players.filter((p) => {
     if (statusFilter === "all") return true;
     const status = getPlayerStatus(draft, p.fullName);
     return statusFilter === "available" ? status.kind === "available" : status.kind !== "available";
   });
+
+  // A stat column's sort only applies while that column is actually shown —
+  // e.g. switching from QB to K makes "passYd" meaningless. Rather than
+  // clearing the sort state outright, just ignore it until it's valid again
+  // (switching back to QB re-applies it automatically).
+  const activeSort = sort && validSortColumnIds.includes(sort.columnId) ? sort : null;
+  const visiblePlayers = sortPlayers(filteredPlayers, activeSort);
+
+  function toggleSort(columnId: string) {
+    setSort((prev) => {
+      if (prev?.columnId === columnId) {
+        return { columnId, direction: prev.direction === "asc" ? "desc" : "asc" };
+      }
+      return { columnId, direction: defaultDirectionFor(columnId) };
+    });
+  }
+
+  function sortIndicator(columnId: string): string {
+    if (activeSort?.columnId !== columnId) return "";
+    return activeSort.direction === "asc" ? " ▲" : " ▼";
+  }
 
   return (
     <div>
@@ -160,13 +184,26 @@ export default function FreeAgentsRoute() {
         <table className="fa-table">
           <thead>
             <tr>
-              <th>Player</th>
-              <th>Pos</th>
-              <th>Team</th>
-              <th>Injury</th>
-              <th>Rank</th>
+              <th className="fa-sortable" onClick={() => toggleSort("name")}>
+                Player{sortIndicator("name")}
+              </th>
+              <th className="fa-sortable" onClick={() => toggleSort("pos")}>
+                Pos{sortIndicator("pos")}
+              </th>
+              <th className="fa-sortable" onClick={() => toggleSort("team")}>
+                Team{sortIndicator("team")}
+              </th>
+              <th className="fa-sortable" onClick={() => toggleSort("injury")}>
+                Injury{sortIndicator("injury")}
+              </th>
+              <th className="fa-sortable" onClick={() => toggleSort("rank")}>
+                Rank{sortIndicator("rank")}
+              </th>
               {statColumns.map((col) => (
-                <th key={col.key}>{col.label}</th>
+                <th key={col.key} className="fa-sortable" onClick={() => toggleSort(col.key)}>
+                  {col.label}
+                  {sortIndicator(col.key)}
+                </th>
               ))}
               <th>Status</th>
             </tr>
