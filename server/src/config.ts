@@ -27,6 +27,12 @@ export const config = {
     redirectUri: process.env.YAHOO_REDIRECT_URI ?? "https://localhost:4000/api/yahoo/callback",
     leagueId: process.env.YAHOO_LEAGUE_ID ?? "101893",
   },
+  // Optional — if either is unset, the server just runs without persistence
+  // (in-memory only, same as before). See persistence/draftPersistence.ts.
+  upstash: {
+    url: process.env.UPSTASH_REDIS_REST_URL ?? "",
+    token: process.env.UPSTASH_REDIS_REST_TOKEN ?? "",
+  },
 };
 
 /** Call this before touching any Yahoo route so we fail with a clear message, not a cryptic 401 from Yahoo. */

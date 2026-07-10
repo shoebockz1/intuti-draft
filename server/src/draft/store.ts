@@ -4,13 +4,15 @@
 // multi-tenancy needed), so plain module-level variables are sufficient —
 // no database.
 //
-// Known limitation, accepted for now: a server restart loses any in-progress
-// draft, its log, and any snapshots (everything lives only in process
-// memory). Do not add persistence here without being asked — this mirrors
-// the project's existing "no persistence yet" scope.
+// Every mutation below also fires an async, best-effort write to Upstash
+// Redis (see persistence/draftPersistence.ts) so state survives a server
+// restart/redeploy, not just live in process memory. Persistence is
+// optional — if not configured, these calls are silent no-ops and behavior
+// is identical to before.
 
 import type { DraftState, ProtectedPlayer } from "./types";
 import { createDraftState, draftUnprotected, keepOwn, undo as undoEngine } from "./engine";
+import { loadPersistedState, savePersistedState } from "../persistence/draftPersistence";
 
 function deepClone<T>(value: T): T {
   if (typeof structuredClone === "function") return structuredClone(value);
@@ -21,6 +23,26 @@ let draftState: DraftState | null = null;
 
 export function getDraftState(): DraftState | null {
   return draftState;
+}
+
+/** Bundles current in-memory state and fires an async, best-effort save —
+ * called at the end of every mutation below. Never awaited by callers of
+ * those mutations; a slow/failed Redis write should never delay or fail an
+ * actual draft pick (see savePersistedState's own error handling). */
+function persistNow(): void {
+  void savePersistedState({ draftState, transactionLog, snapshots });
+}
+
+/** Called once at server startup, before the server accepts requests — see
+ * index.ts. Populates the module-level state from Redis if anything was
+ * saved there; leaves everything at its fresh-boot defaults otherwise
+ * (including when persistence isn't configured at all). */
+export async function hydrateFromPersistence(): Promise<void> {
+  const payload = await loadPersistedState();
+  if (!payload) return;
+  draftState = payload.draftState;
+  transactionLog = payload.transactionLog;
+  snapshots = payload.snapshots;
 }
 
 // ---------------------------------------------------------------------------
@@ -119,6 +141,7 @@ export function restoreSnapshot(id: string): DraftState {
   draftState = deepClone(snap.state);
   transactionLog = deepClone(snap.log);
   appendLog({ action: "restore", detail: `Restored from pre-reset snapshot ${id}` });
+  persistNow();
   return draftState;
 }
 
@@ -138,6 +161,7 @@ export function startDraft(
     action: "start",
     detail: `Draft started — ${ownerNames.length} owners, 5th place: ${ownerNames[fifthPos] ?? "?"}`,
   });
+  persistNow();
   return draftState;
 }
 
@@ -162,6 +186,7 @@ export function pickKeepOwn(protIdx: number): PickResult {
   draftState = state;
   const filledPick = state.picks[pickIdx];
   appendLog({ action: "keep", ownerName, playerName: filledPick?.player ?? undefined });
+  persistNow();
   return { state, toast };
 }
 
@@ -175,6 +200,7 @@ export function pickUnprotectedPlayer(playerName: string): PickResult {
   const filledPick = state.picks[pickIdx];
   const action: TransactionAction = filledPick?.type === "fifth-jump" ? "fifth-jump" : "unprotected";
   appendLog({ action, ownerName, playerName: filledPick?.player ?? undefined });
+  persistNow();
   return { state, toast };
 }
 
@@ -186,6 +212,7 @@ export function undoLastPick(): PickResult {
   const { state, toast } = undoEngine(current);
   draftState = state;
   appendLog({ action: "undo", ownerName, playerName: undonePick?.player ?? undefined });
+  persistNow();
   return { state, toast };
 }
 
@@ -197,4 +224,8 @@ export function resetHard(): void {
   }
   draftState = null;
   transactionLog = [];
+  // Persist even after wiping — this saves the pre-reset snapshot pushed
+  // above, so it's still restorable even if the server restarts before
+  // anyone gets around to using it.
+  persistNow();
 }

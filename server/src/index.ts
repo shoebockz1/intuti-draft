@@ -11,6 +11,7 @@ import { playersRouter } from "./routes/players";
 import { yahooRouter } from "./routes/yahoo";
 import { commissionerRouter } from "./routes/commissioner";
 import { draftRouter } from "./routes/draft";
+import { hydrateFromPersistence } from "./draft/store";
 
 // In production (Render) the client and server are one deployed service —
 // this same process serves the built React app's static files alongside the
@@ -56,44 +57,53 @@ app.use("/api/yahoo", yahooRouter);
 app.use("/api/commissioner", commissionerRouter);
 app.use("/api/draft", draftRouter);
 
-if (isProduction) {
-  // Compiled to server/dist/index.js at runtime, so ../../client/dist
-  // resolves to <repo root>/client/dist — the Vite build output.
-  const clientDist = path.join(__dirname, "..", "..", "client", "dist");
-  app.use(express.static(clientDist));
-  // SPA fallback: any non-API GET (e.g. "/" or "/admin", or a hard refresh
-  // on either) serves index.html and lets the client-side router take over.
-  // Must come after the API routers above so /api/* 404s normally instead
-  // of getting swallowed here.
-  app.get(/^(?!\/api).*/, (_req, res) => {
-    res.sendFile(path.join(clientDist, "index.html"));
-  });
+// Hydrate any persisted draft state from Redis before accepting requests —
+// otherwise a request could race the load and see a false "no draft"
+// briefly after every restart. See draft/store.ts and persistence/draftPersistence.ts.
+async function start(): Promise<void> {
+  await hydrateFromPersistence();
 
-  http.createServer(app).listen(config.port, () => {
-    // eslint-disable-next-line no-console
-    console.log(`Intuti server listening on port ${config.port} (production, TLS terminated upstream)`);
-  });
-} else {
-  const certDir = path.join(__dirname, "..", "certs");
-  const keyPath = path.join(certDir, "localhost+2-key.pem");
-  const certPath = path.join(certDir, "localhost+2.pem");
+  if (isProduction) {
+    // Compiled to server/dist/index.js at runtime, so ../../client/dist
+    // resolves to <repo root>/client/dist — the Vite build output.
+    const clientDist = path.join(__dirname, "..", "..", "client", "dist");
+    app.use(express.static(clientDist));
+    // SPA fallback: any non-API GET (e.g. "/" or "/admin", or a hard refresh
+    // on either) serves index.html and lets the client-side router take over.
+    // Must come after the API routers above so /api/* 404s normally instead
+    // of getting swallowed here.
+    app.get(/^(?!\/api).*/, (_req, res) => {
+      res.sendFile(path.join(clientDist, "index.html"));
+    });
 
-  if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
-    // eslint-disable-next-line no-console
-    console.error(
-      `Missing local HTTPS certificate. Expected files at:\n  ${keyPath}\n  ${certPath}\n` +
-        `Generate them with: mkcert localhost 127.0.0.1 ::1 (run from server/certs/)`,
-    );
-    process.exit(1);
+    http.createServer(app).listen(config.port, () => {
+      // eslint-disable-next-line no-console
+      console.log(`Intuti server listening on port ${config.port} (production, TLS terminated upstream)`);
+    });
+  } else {
+    const certDir = path.join(__dirname, "..", "certs");
+    const keyPath = path.join(certDir, "localhost+2-key.pem");
+    const certPath = path.join(certDir, "localhost+2.pem");
+
+    if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `Missing local HTTPS certificate. Expected files at:\n  ${keyPath}\n  ${certPath}\n` +
+          `Generate them with: mkcert localhost 127.0.0.1 ::1 (run from server/certs/)`,
+      );
+      process.exit(1);
+    }
+
+    const httpsOptions = {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certPath),
+    };
+
+    https.createServer(httpsOptions, app).listen(config.port, () => {
+      // eslint-disable-next-line no-console
+      console.log(`Intuti server listening on https://localhost:${config.port}`);
+    });
   }
-
-  const httpsOptions = {
-    key: fs.readFileSync(keyPath),
-    cert: fs.readFileSync(certPath),
-  };
-
-  https.createServer(httpsOptions, app).listen(config.port, () => {
-    // eslint-disable-next-line no-console
-    console.log(`Intuti server listening on https://localhost:${config.port}`);
-  });
 }
+
+void start();
