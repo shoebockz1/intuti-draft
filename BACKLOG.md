@@ -3,7 +3,7 @@
 Living list of open items needed to make this fully functional and live for all 10 owners.
 Statuses: **Not started** / **In progress** / **Done, but untested**
 
-Last updated: 2026-07-10 (night)
+Last updated: 2026-07-10 (later night)
 
 ---
 
@@ -27,6 +27,12 @@ Last updated: 2026-07-10 (night)
 
 - **Not started** — Rate limiting on `/api/commissioner/login` (low risk given this is a private trusted-friend tool, but there's currently nothing stopping repeated passcode guesses if the URL became known).
 - **Not started** — Session store. Express's default in-memory session store logs its own warning about not being production-safe (no pruning of expired sessions, doesn't scale past one process). Directly observed during the persistence testing: restarting the server logs the commissioner out (their session lives in the same in-memory store, unlike the draft data, which now survives via Redis). Low-stakes today — just re-enter the passcode — but worth fixing alongside future hardening, especially since we now expect restarts to be non-catastrophic and might do them more casually (e.g. the draft-day plan-switch).
+
+## Future — after this draft, not blocking anything upcoming
+
+- **Not started** — Archive completed drafts so they can be loaded/viewed later. Today there's only ever "the one live draft" — no concept of draft history across years. Needs: a save-on-completion step, storage for past drafts (Redis works fine for one; a small number of yearly archives is still tiny data, so no new infra needed), and a read-only view to browse an archived draft's board/log.
+- **Not started** — Explore auto-loading a completed draft's results directly into the real 2026 Yahoo league. **Likely blocked by more than just the pending Yahoo approval**: the application currently in review only requested *read-only* access (`fspt-r` scope) — writing roster data into a Yahoo league is a separate, write-level permission (`fspt-w`) that hasn't been requested at all yet. Worth confirming the actual mechanics of "set a Yahoo roster via API" are even something Yahoo's API supports for this use case before assuming it's just a scope bump away.
+- **Not started** — After the 2026 season ends, extract real rosters from Yahoo the same way "Load 2025 rosters" works now, but automated instead of manual screenshots. Once Yahoo read access is approved, the existing (already-built, currently unused) server-side Yahoo roster-fetch plumbing could pull team names + players directly, generating a `rosters2026.ts`-equivalent fixture without the screenshot-and-transcribe process. Note team names may change year to year — worth designing for that rather than assuming stability.
 
 ---
 
