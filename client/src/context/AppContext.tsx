@@ -59,8 +59,6 @@ interface AppContextValue {
   setMyOwnerIdx: (i: number) => void;
   whoAmIOpen: boolean;
   setWhoAmIOpen: (v: boolean) => void;
-  rightSidebarOpen: boolean;
-  setRightSidebarOpen: (v: boolean) => void;
 
   // toast
   toast: string | null;
@@ -84,7 +82,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const [myOwnerIdx, setMyOwnerIdx] = useState(0);
   const [whoAmIOpen, setWhoAmIOpen] = useState(false);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
 
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -218,8 +215,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setMyOwnerIdx,
     whoAmIOpen,
     setWhoAmIOpen,
-    rightSidebarOpen,
-    setRightSidebarOpen,
     toast,
     showToast,
   };

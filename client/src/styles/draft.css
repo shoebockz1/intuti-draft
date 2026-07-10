@@ -30,11 +30,9 @@
 /* LAYOUT */
 .draft-layout {
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 200px 1fr 210px;
   gap: 12px;
-  transition: grid-template-columns .25s;
 }
-.draft-layout.with-right { grid-template-columns: 200px 1fr 210px; }
 .sidebar { display: flex; flex-direction: column; gap: 8px; }
 
 /* ON CLOCK */
@@ -151,4 +149,3 @@
 .rs-kept { color: var(--green); }
 .rs-free { color: var(--red); }
 .rs-protected { color: var(--text3); }
-.toggle-right-btn { font-size: 11px; padding: 4px 10px; }

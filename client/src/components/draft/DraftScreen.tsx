@@ -8,8 +8,7 @@ import ResearchSidebar from "./ResearchSidebar";
 import WhoAmIModal from "../modals/WhoAmIModal";
 
 export default function DraftScreen() {
-  const { draft, isCommissioner, undoLastPick, rightSidebarOpen, setRightSidebarOpen, myOwnerIdx, setWhoAmIOpen } =
-    useApp();
+  const { draft, isCommissioner, undoLastPick, myOwnerIdx, setWhoAmIOpen } = useApp();
 
   if (!draft) return null;
 
@@ -38,9 +37,6 @@ export default function DraftScreen() {
             Unprotected: <span className="counter-big">{draft.unprotCount}</span>
             <span style={{ fontSize: 10, color: "var(--text3)" }}>/3</span>
           </div>
-          <button className="btn sm toggle-right-btn" onClick={() => setRightSidebarOpen(!rightSidebarOpen)}>
-            {rightSidebarOpen ? "Research ◂" : "Research ▸"}
-          </button>
           {isCommissioner && (
             // Undo is commissioner-only per HANDOFF.md — it mutates shared
             // state, unlike making a pick, which is open to everyone. Hidden
@@ -80,7 +76,7 @@ export default function DraftScreen() {
         </div>
       </div>
 
-      <div className={`draft-layout ${rightSidebarOpen ? "with-right" : ""}`}>
+      <div className="draft-layout">
         <div className="sidebar">
           <div className="panel">
             <OnClockPanel />
@@ -98,11 +94,9 @@ export default function DraftScreen() {
         <div className="board-outer">
           <Board />
         </div>
-        {rightSidebarOpen && (
-          <div className="right-sidebar">
-            <ResearchSidebar />
-          </div>
-        )}
+        <div className="right-sidebar">
+          <ResearchSidebar />
+        </div>
       </div>
 
       <WhoAmIModal />
