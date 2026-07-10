@@ -2,7 +2,7 @@
 
 Items completed and verified working, moved off `BACKLOG.md`.
 
-Last updated: 2026-07-10 (evening)
+Last updated: 2026-07-10 (night)
 
 ---
 
@@ -33,6 +33,7 @@ Last updated: 2026-07-10 (evening)
 - **Done** — Replaced the Exp column with an always-visible Rank column (previously only shown for a selected position), and added a third "All Players" status toggle alongside Available / Drafted+Protected. Both this and the two items above are confirmed live on Render — deployed bundle hash matched the local build exactly.
 - **Done** — Made every column on `/players` sortable by clicking its header (click again to flip direction), client-side since the full result set is already in memory. Verified sorting by real "Pass Yd" data both directions and confirmed switching back to "Rank" correctly restores the standard rank order. **Note**: pushed to `main`, not yet deployed to Render.
 - **Done** — Removed the "Research ▸/◂" toggle button on the draft board — the right sidebar (Team Roster + Free Agents link) is now always visible, no extra click needed. Cleaned up the now-unused `rightSidebarOpen` context state and toggle CSS in the process. **Note**: pushed to `main`, not yet deployed to Render.
+- **Done** — Fixed a real bug found by human QA: rostered players with a name suffix mismatch between the fixture data and Sleeper's canonical name (e.g. "James Cook III" vs Sleeper's "James Cook") were incorrectly showing as "available" on the Free Agents page. Scoured all 10 rosters and found 14 total instances; fixed at the root by normalizing suffixes/punctuation/case on both sides of the name comparison in `getPlayerStatus`, rather than hand-editing the 14 fixture entries. Verified all 14 now correctly resolve to "protected — &lt;team&gt;". **Note**: pushed to `main`, not yet deployed to Render.
 
 ---
 
