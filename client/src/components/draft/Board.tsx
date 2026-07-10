@@ -16,7 +16,7 @@ export default function Board() {
 
   if (!draft) return null;
 
-  const colW = 62;
+  const colW = 70;
 
   return (
     <table className="board">
@@ -30,8 +30,8 @@ export default function Board() {
         <tr>
           <th className="rnd-th">Rd</th>
           {draft.owners.map((o) => (
-            <th className="owner-th" key={o.idx}>
-              {o.name.split(" ")[0].substring(0, 7)}
+            <th className="owner-th" key={o.idx} title={o.name}>
+              {o.name}
             </th>
           ))}
         </tr>
