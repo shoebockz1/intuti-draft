@@ -5,9 +5,12 @@
   "description": "Intuti draft tool backend — currently a skeleton with a health-check route. Future home of Sleeper API proxying (and possibly Yahoo OAuth import).",
   "main": "dist/index.js",
   "scripts": {
+    "predev": "node ../scripts/generate-version.mjs server/src/version.ts",
     "dev": "tsx watch src/index.ts",
+    "prebuild": "node ../scripts/generate-version.mjs server/src/version.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "pretypecheck": "node ../scripts/generate-version.mjs server/src/version.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

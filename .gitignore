@@ -4,6 +4,10 @@ dist-ssr
 *.local
 *.log
 
+# auto-generated at build time by scripts/generate-version.mjs — see there
+client/src/version.ts
+server/src/version.ts
+
 # secrets
 .env
 .env.*

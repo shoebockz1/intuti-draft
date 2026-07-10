@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node ../scripts/generate-version.mjs client/src/version.ts",
     "dev": "vite",
+    "prebuild": "node ../scripts/generate-version.mjs client/src/version.ts",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
