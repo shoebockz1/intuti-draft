@@ -2,7 +2,7 @@
 
 Items completed and verified working, moved off `BACKLOG.md`.
 
-Last updated: 2026-07-10 (afternoon)
+Last updated: 2026-07-10 (evening)
 
 ---
 
@@ -31,6 +31,7 @@ Last updated: 2026-07-10 (afternoon)
 - **Done** — Fixed the draft board truncating team names to just their first word (max 7 chars) — several real team names starting with "The"/"tHe" all collapsed to an identical, useless "THE" header, found during real-draft testing. Now shows the full name wrapped across lines instead; verified all 10 real team names render fully distinct and the board still fits without horizontal scroll at normal desktop width.
 - **Done** — Added real 2025 raw counting stats (position-specific columns — QB passing/rushing, RB rushing/receiving, WR/TE receiving, K field goals, DEF sacks/INTs/etc., verified against real Sleeper payloads not guessed), a standard-scoring position rank column/sort (used once a specific position is selected — replaces the generic prominence sort in that view), and an Available / Drafted+Protected toggle (defaulting to Available, since that's what most research is for) on the `/players` page. Verified end-to-end in a real draft: real stats displayed correctly, rank-based sorting confirmed against known real production, the toggle correctly hid/surfaced already-protected stars, and drafting from a stat-enabled position view worked correctly.
 - **Done** — Replaced the Exp column with an always-visible Rank column (previously only shown for a selected position), and added a third "All Players" status toggle alongside Available / Drafted+Protected. Both this and the two items above are confirmed live on Render — deployed bundle hash matched the local build exactly.
+- **Done** — Made every column on `/players` sortable by clicking its header (click again to flip direction), client-side since the full result set is already in memory. Verified sorting by real "Pass Yd" data both directions and confirmed switching back to "Rank" correctly restores the standard rank order. **Note**: pushed to `main`, not yet deployed to Render.
 
 ---
 
