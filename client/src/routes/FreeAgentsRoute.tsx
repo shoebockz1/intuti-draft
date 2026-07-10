@@ -21,7 +21,7 @@ import { POSITION_STAT_COLUMNS } from "../data/freeAgentColumns";
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"] as const;
 const SEARCH_DEBOUNCE_MS = 250;
 
-type StatusFilter = "available" | "drafted";
+type StatusFilter = "available" | "drafted" | "all";
 
 export default function FreeAgentsRoute() {
   const { draft, draftUnprotectedPick } = useApp();
@@ -91,12 +91,14 @@ export default function FreeAgentsRoute() {
 
   const canDraft = draft.cur < draft.picks.length;
   const statColumns = position === "ALL" ? [] : (POSITION_STAT_COLUMNS[position] ?? []);
-  const showRank = position !== "ALL";
+  const baseColumnCount = 6; // Player, Pos, Team, Injury, Rank, Status
 
   // Most owners are here to see who's left, not to re-confirm who's already
-  // gone — so "available" is the default view, with drafted+protected
-  // grouped into a single second toggle state rather than a third tab.
+  // gone — so "available" is the default view. Drafted+protected are
+  // grouped into one toggle state (not split into two tabs), and "All" is
+  // there for the rarer case of wanting to see everyone regardless of status.
   const visiblePlayers = players.filter((p) => {
+    if (statusFilter === "all") return true;
     const status = getPlayerStatus(draft, p.fullName);
     return statusFilter === "available" ? status.kind === "available" : status.kind !== "available";
   });
@@ -136,6 +138,12 @@ export default function FreeAgentsRoute() {
           >
             Drafted/Protected
           </button>
+          <button
+            className={`fa-tab ${statusFilter === "all" ? "active" : ""}`}
+            onClick={() => setStatusFilter("all")}
+          >
+            All Players
+          </button>
         </div>
         <input
           type="text"
@@ -155,9 +163,8 @@ export default function FreeAgentsRoute() {
               <th>Player</th>
               <th>Pos</th>
               <th>Team</th>
-              <th>Exp</th>
               <th>Injury</th>
-              {showRank && <th>Rank</th>}
+              <th>Rank</th>
               {statColumns.map((col) => (
                 <th key={col.key}>{col.label}</th>
               ))}
@@ -167,12 +174,12 @@ export default function FreeAgentsRoute() {
           <tbody>
             {fetching && (
               <tr className="fa-empty-row">
-                <td colSpan={6 + statColumns.length}>Loading players…</td>
+                <td colSpan={baseColumnCount + statColumns.length}>Loading players…</td>
               </tr>
             )}
             {!fetching && visiblePlayers.length === 0 && (
               <tr className="fa-empty-row">
-                <td colSpan={6 + statColumns.length}>No matches.</td>
+                <td colSpan={baseColumnCount + statColumns.length}>No matches.</td>
               </tr>
             )}
             {!fetching &&
@@ -186,9 +193,8 @@ export default function FreeAgentsRoute() {
                     </td>
                     <td>{p.position}</td>
                     <td>{p.nflTeam ?? "—"}</td>
-                    <td>{p.isRookie ? "Rookie" : p.yearsExp != null ? `${p.yearsExp} yrs` : "—"}</td>
                     <td className={p.injuryStatus ? "fa-injury" : ""}>{p.injuryStatus ?? "—"}</td>
-                    {showRank && <td>{p.posRank ?? "—"}</td>}
+                    <td>{p.posRank ?? "—"}</td>
                     {statColumns.map((col) => (
                       <td key={col.key}>{p.stats?.[col.key] ?? "—"}</td>
                     ))}
