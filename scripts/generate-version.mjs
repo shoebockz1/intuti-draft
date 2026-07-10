@@ -26,6 +26,19 @@ function git(cmd) {
   }
 }
 
+// Render's build step clones with only the latest commit (a "shallow"
+// clone), not the repo's full history — `git rev-list --count HEAD` on a
+// shallow clone only sees the commits that were actually fetched, which is
+// 1, not the real count. Detected exactly this in production: it reported
+// "v1" instead of the real ~35. Deepen the clone first so the count is
+// accurate. Wrapped in try/catch (via git()'s own handling) since this
+// needs network access to the origin remote — if that's ever unavailable
+// for some reason, fall back to whatever `git rev-list` can see rather than
+// fail the whole build over a version-label nicety.
+if (git("git rev-parse --is-shallow-repository") === "true") {
+  git("git fetch --unshallow --quiet");
+}
+
 const count = git("git rev-list --count HEAD") ?? "0";
 const sha = git("git rev-parse --short HEAD") ?? "unknown";
 
