@@ -18,10 +18,20 @@ import { dirname, resolve } from "node:path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 
+// Verbose on purpose — this whole script exists to make deploys verifiable,
+// so its own diagnostics need to show up in Render's build log rather than
+// silently swallowing errors the way the first version of this script did
+// (which is exactly what hid the shallow-clone bug below from showing its
+// real cause). Every git() call logs the command and either its result or
+// the actual stderr, not just null.
 function git(cmd) {
   try {
-    return execSync(cmd, { cwd: repoRoot }).toString().trim();
-  } catch {
+    const out = execSync(cmd, { cwd: repoRoot, stdio: ["ignore", "pipe", "pipe"] }).toString().trim();
+    console.log(`[version] $ ${cmd} -> ${JSON.stringify(out)}`);
+    return out;
+  } catch (err) {
+    const stderr = err?.stderr?.toString().trim() || err?.message || String(err);
+    console.log(`[version] $ ${cmd} -> FAILED: ${stderr}`);
     return null;
   }
 }
@@ -29,14 +39,16 @@ function git(cmd) {
 // Render's build step clones with only the latest commit (a "shallow"
 // clone), not the repo's full history — `git rev-list --count HEAD` on a
 // shallow clone only sees the commits that were actually fetched, which is
-// 1, not the real count. Detected exactly this in production: it reported
-// "v1" instead of the real ~35. Deepen the clone first so the count is
-// accurate. Wrapped in try/catch (via git()'s own handling) since this
-// needs network access to the origin remote — if that's ever unavailable
-// for some reason, fall back to whatever `git rev-list` can see rather than
-// fail the whole build over a version-label nicety.
-if (git("git rev-parse --is-shallow-repository") === "true") {
+// 1, not the real count. Confirmed exactly this in production once already;
+// the first fix attempt (git fetch --unshallow) didn't actually resolve it
+// there even though it worked against a locally-reproduced shallow clone —
+// hence the verbose logging above, to see what Render's environment
+// actually does differently before guessing at a second fix blind.
+const isShallow = git("git rev-parse --is-shallow-repository");
+if (isShallow === "true") {
+  git("git remote -v");
   git("git fetch --unshallow --quiet");
+  git("git rev-parse --is-shallow-repository"); // confirm whether it actually became non-shallow
 }
 
 const count = git("git rev-list --count HEAD") ?? "0";
