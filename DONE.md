@@ -2,7 +2,7 @@
 
 Items completed and verified working, moved off `BACKLOG.md`.
 
-Last updated: 2026-07-10 (night)
+Last updated: 2026-07-10 (later night)
 
 ---
 
@@ -35,6 +35,7 @@ Last updated: 2026-07-10 (night)
 - **Done** — Removed the "Research ▸/◂" toggle button on the draft board — the right sidebar (Team Roster + Free Agents link) is now always visible, no extra click needed. Cleaned up the now-unused `rightSidebarOpen` context state and toggle CSS in the process. **Note**: pushed to `main`, not yet deployed to Render.
 - **Done** — Fixed a real bug found by human QA: rostered players with a name suffix mismatch between the fixture data and Sleeper's canonical name (e.g. "James Cook III" vs Sleeper's "James Cook") were incorrectly showing as "available" on the Free Agents page. Scoured all 10 rosters and found 14 total instances; fixed at the root by normalizing suffixes/punctuation/case on both sides of the name comparison in `getPlayerStatus`, rather than hand-editing the 14 fixture entries. Verified all 14 now correctly resolve to "protected — &lt;team&gt;". **Note**: pushed to `main`, not yet deployed to Render.
 - **Done** — Draft state persistence via Upstash Redis (free tier). The live draft, transaction log, and pre-reset snapshots now survive server restarts/redeploys/crashes instead of living only in process memory — every mutation fires an async best-effort save, and the server rehydrates from Redis at startup before accepting requests. Deliberately optional (falls back to the old in-memory-only behavior with a warning if the env vars aren't set) and exposed on `GET /api/health` as `persistenceEnabled`. Verified twice: once locally with a full process kill, and again — the real test — on live production, by starting a real draft, making a pick, and using Render's actual "Restart service" action; the pick, transaction log, and pre-reset snapshot all survived intact on the real infrastructure, not just a local simulation. Also confirmed a hard reset correctly persists as wiped, and deployed the required Upstash env vars to Render.
+- **Done** — Added a "5th Place Jump Pick" panel to the bottom of the left sidebar, after discovering (and proving with a real test) that the board itself can silently hide the jump pick's player: the jump pick and the 5th-place winner's own natural turn can share the same round, and the board only shows one pick per (round, owner) cell — the natural pick always wins that slot, hiding the jump's player entirely even though the underlying data stays correct. The new panel sources its data from the transaction log (for the timestamp, which individual picks don't carry) and is always correct regardless of the board's display limitation. Verified in a real browser against a live test draft, not just a build check.
 
 ---
 
