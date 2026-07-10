@@ -2,7 +2,7 @@
 
 Items completed and verified working, moved off `BACKLOG.md`.
 
-Last updated: 2026-07-10
+Last updated: 2026-07-10 (afternoon)
 
 ---
 
@@ -28,7 +28,8 @@ Last updated: 2026-07-10
 - **Done** — Hosting fully confirmed reachable: loaded `https://intuti-draft-board.onrender.com` from a phone on cellular data (off Robin's home network), proving it's genuinely reachable by devices other than the one it was built on — this was the actual goal of hosting it in the first place.
 - **Done** — Free Agents research panel wired up (first pass): live search reusing the existing Sleeper-backed endpoint, cross-referenced against the polled live draft to show available/drafted/still-protected status, and drafts directly through the same pick-making path as the Unprotected tab.
 - **Done** — Upgraded Free Agents into a dedicated `/players` research page (superseding the sidebar-only search from the item above, per feedback that this needed to be a much bigger part of the experience): position tabs (ALL/QB/RB/WR/TE/K/DEF), browse-everyone-sorted-by-ranking when nothing's typed, always-visible position column, and new data fields (injury status, age/experience) pulled from Sleeper. Extracted the board's polling into a shared `useDraftPolling` hook so this new page gets live status independently of the board route. Verified end-to-end in a real draft, both locally and re-confirmed against the live Render production site: position filter (RB tab, 257 correctly rank-sorted results), combined position+search filtering, real injury status data flowing through (Mahomes showed "Questionable"), and a live draft-from-table click that correctly broke the seal and advanced the turn.
-- **Done** — Fixed the draft board truncating team names to just their first word (max 7 chars) — several real team names starting with "The"/"tHe" all collapsed to an identical, useless "THE" header, found during real-draft testing. Now shows the full name wrapped across lines instead; verified all 10 real team names render fully distinct and the board still fits without horizontal scroll at normal desktop width. **Note**: pushed to `main`, not yet deployed to Render — needs a manual "Deploy latest commit."
+- **Done** — Fixed the draft board truncating team names to just their first word (max 7 chars) — several real team names starting with "The"/"tHe" all collapsed to an identical, useless "THE" header, found during real-draft testing. Now shows the full name wrapped across lines instead; verified all 10 real team names render fully distinct and the board still fits without horizontal scroll at normal desktop width.
+- **Done** — Added real 2025 raw counting stats (position-specific columns — QB passing/rushing, RB rushing/receiving, WR/TE receiving, K field goals, DEF sacks/INTs/etc., verified against real Sleeper payloads not guessed), a standard-scoring position rank column/sort (used once a specific position is selected — replaces the generic prominence sort in that view), and an Available / Drafted+Protected toggle (defaulting to Available, since that's what most research is for) on the `/players` page. Verified end-to-end in a real draft: real stats displayed correctly, rank-based sorting confirmed against known real production, the toggle correctly hid/surfaced already-protected stars, and drafting from a stat-enabled position view worked correctly. **Note**: this and the board header fix above are both pushed to `main` but not yet deployed to Render — needs a manual "Deploy latest commit" to go live.
 
 ---
 
