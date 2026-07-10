@@ -26,7 +26,7 @@ Last updated: 2026-07-10 (night)
 ## Hardening / lower-risk gaps
 
 - **Not started** — Rate limiting on `/api/commissioner/login` (low risk given this is a private trusted-friend tool, but there's currently nothing stopping repeated passcode guesses if the URL became known).
-- **Not started** — Session store. Express's default in-memory session store logs its own warning about not being production-safe (no pruning of expired sessions, doesn't scale past one process). Low priority — we're intentionally running one instance and sessions are short-lived — but worth a look if the app runs long-term.
+- **Not started** — Session store. Express's default in-memory session store logs its own warning about not being production-safe (no pruning of expired sessions, doesn't scale past one process). Directly observed during the persistence testing: restarting the server logs the commissioner out (their session lives in the same in-memory store, unlike the draft data, which now survives via Redis). Low-stakes today — just re-enter the passcode — but worth fixing alongside future hardening, especially since we now expect restarts to be non-catastrophic and might do them more casually (e.g. the draft-day plan-switch).
 
 ---
 
