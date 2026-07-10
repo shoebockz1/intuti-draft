@@ -1,66 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "../../context/AppContext";
-import { searchPlayers, type RemotePlayer } from "../../api/players";
+import { useRouter } from "../../router/Router";
 import { getPlayerStatus } from "../../engine/playerStatus";
 
-const SEARCH_DEBOUNCE_MS = 200;
-const MAX_RESULTS = 12;
-
 export default function ResearchSidebar() {
-  const { draft, myOwnerIdx, draftUnprotectedPick } = useApp();
+  const { draft, myOwnerIdx } = useApp();
+  const { navigate } = useRouter();
   const [rosterOpen, setRosterOpen] = useState(true);
   const [faOpen, setFaOpen] = useState(true);
   const [selectedOwnerIdx, setSelectedOwnerIdx] = useState(myOwnerIdx);
-
-  const [faQuery, setFaQuery] = useState("");
-  const [faResults, setFaResults] = useState<RemotePlayer[]>([]);
-  const [faError, setFaError] = useState<string | null>(null);
-  const [faLoading, setFaLoading] = useState(false);
-  const faDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setSelectedOwnerIdx(myOwnerIdx);
   }, [myOwnerIdx]);
 
-  useEffect(() => {
-    return () => {
-      if (faDebounce.current) clearTimeout(faDebounce.current);
-    };
-  }, []);
-
-  function handleFaQueryChange(value: string) {
-    setFaQuery(value);
-    if (faDebounce.current) clearTimeout(faDebounce.current);
-
-    const query = value.trim();
-    if (!query) {
-      setFaResults([]);
-      setFaError(null);
-      return;
-    }
-
-    faDebounce.current = setTimeout(() => {
-      setFaLoading(true);
-      searchPlayers(query)
-        .then((results) => {
-          setFaResults(results.slice(0, MAX_RESULTS));
-          setFaError(null);
-        })
-        .catch(() => {
-          setFaResults([]);
-          setFaError("Player search unavailable — server or Sleeper may be unreachable.");
-        })
-        .finally(() => setFaLoading(false));
-    }, SEARCH_DEBOUNCE_MS);
-  }
-
   if (!draft) return null;
   const owner = draft.owners[selectedOwnerIdx];
-
-  // Whether there's an actual live pick to draft into right now (defensive —
-  // ResearchSidebar only renders while a draft exists, but a completed draft
-  // has no current pick left).
-  const canDraft = draft.cur < draft.picks.length;
 
   return (
     <>
@@ -142,65 +97,21 @@ export default function ResearchSidebar() {
         </div>
       </div>
 
-      {/* FREE AGENTS PANEL */}
+      {/* FREE AGENTS PANEL — points at the dedicated /players research page
+          (position tabs, browse-all sorted by prominence, injury status)
+          rather than duplicating a second search UI in this narrow sidebar. */}
       <div className="rpanel">
         <div className="rpanel-header" onClick={() => setFaOpen(!faOpen)}>
           <span className="rpanel-title">Free agents</span>
           <span className={`rpanel-toggle ${faOpen ? "open" : ""}`}>▾</span>
         </div>
         <div className={`rpanel-body ${faOpen ? "open" : ""}`}>
-          <input
-            type="text"
-            placeholder="Search any NFL player…"
-            style={{ width: "100%", marginBottom: 8, fontSize: 12 }}
-            value={faQuery}
-            onChange={(e) => handleFaQueryChange(e.target.value)}
-          />
-
-          {faError && <div className="warn">{faError}</div>}
-          {!faError && faLoading && <div style={{ fontSize: 11, color: "var(--text3)" }}>Searching…</div>}
-          {!faError && !faLoading && faQuery.trim() && faResults.length === 0 && (
-            <div style={{ fontSize: 11, color: "var(--text3)" }}>No matches.</div>
-          )}
-          {!faQuery.trim() && !faError && (
-            <div style={{ fontSize: 11, color: "var(--text3)", lineHeight: 1.5 }}>
-              Search any NFL player to see if they're available, already drafted, or still someone's protected pick —
-              and draft them straight from here if it's a valid pick right now.
-            </div>
-          )}
-
-          {faResults.map((p) => {
-            const status = getPlayerStatus(draft, p.fullName);
-            return (
-              <div className="roster-item" key={p.playerId}>
-                <span className="roster-item-name">
-                  {p.fullName}
-                  {p.isRookie ? " (rookie)" : ""}
-                  <span style={{ color: "var(--text3)", fontSize: 10 }}>
-                    {" — "}
-                    {p.position}
-                    {p.nflTeam ? ` ${p.nflTeam}` : ""}
-                  </span>
-                </span>
-                {status.kind === "available" && canDraft && (
-                  <button
-                    className="btn xs"
-                    onClick={() => void draftUnprotectedPick(p.fullName)}
-                    title="This will draft this player as the current unprotected pick — will break the on-the-clock owner's seal if not already broken."
-                  >
-                    Draft
-                  </button>
-                )}
-                {status.kind === "available" && !canDraft && (
-                  <span className="roster-status rs-free">available</span>
-                )}
-                {status.kind === "drafted" && <span className="roster-status rs-protected">drafted</span>}
-                {status.kind === "protected" && (
-                  <span className="roster-status rs-protected">protected — {status.ownerName}</span>
-                )}
-              </div>
-            );
-          })}
+          <div style={{ fontSize: 11, color: "var(--text3)", lineHeight: 1.5, marginBottom: 10 }}>
+            Browse by position, sorted by ranking, with injury status and one-click drafting.
+          </div>
+          <button className="btn sm primary" style={{ width: "100%" }} onClick={() => navigate("/players")}>
+            Open free agent research →
+          </button>
         </div>
       </div>
     </>

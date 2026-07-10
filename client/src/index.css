@@ -2,6 +2,7 @@
 @import "./styles/setup.css";
 @import "./styles/draft.css";
 @import "./styles/modals.css";
+@import "./styles/freeagents.css";
 
 #root {
   min-height: 100svh;

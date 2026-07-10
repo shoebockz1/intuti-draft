@@ -12,8 +12,8 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const FANTASY_POSITIONS = new Set(["QB", "RB", "WR", "TE", "K", "DEF"]);
 
 /** Shape we actually care about from Sleeper's raw player object. Sleeper's
- * real payload has many more fields (birth_date, college, injury_status,
- * etc.) that we don't currently need. */
+ * real payload has many more fields (birth_date, college, height/weight,
+ * various other-platform IDs, etc.) that we don't currently need. */
 interface SleeperRawPlayer {
   player_id?: string;
   full_name?: string | null;
@@ -23,6 +23,10 @@ interface SleeperRawPlayer {
   team?: string | null;
   status?: string | null;
   years_exp?: number | null;
+  injury_status?: string | null;
+  age?: number | null;
+  search_rank?: number | null;
+  depth_chart_order?: number | null;
 }
 
 export interface NormalizedPlayer {
@@ -32,6 +36,16 @@ export interface NormalizedPlayer {
   nflTeam: string | null;
   status: string | null;
   isRookie: boolean;
+  /** e.g. "Questionable" / "Out" / "IR" — distinct from the generic roster `status` above. */
+  injuryStatus: string | null;
+  age: number | null;
+  yearsExp: number | null;
+  /** Sleeper's own relevance ranking — lower is more prominent/well-known. Used to sort
+   * "browse everyone" and search results so stars surface before deep bench players. Not
+   * present for every player (mainly deep/inactive ones); those sort last. */
+  searchRank: number | null;
+  /** 1 = starter at that position on their team, per Sleeper's depth chart. Null if unknown. */
+  depthChartOrder: number | null;
 }
 
 interface Cache {
@@ -90,8 +104,25 @@ function normalize(raw: Record<string, SleeperRawPlayer>): NormalizedPlayer[] {
       nflTeam: p.team ?? null,
       status: p.status ?? null,
       isRookie,
+      injuryStatus: p.injury_status ?? null,
+      age: p.age ?? null,
+      yearsExp: p.years_exp ?? null,
+      searchRank: p.search_rank ?? null,
+      depthChartOrder: p.depth_chart_order ?? null,
     });
   }
+
+  // Sort once here so every caller (browse-all, search, position-filtered)
+  // gets a consistent "most prominent players first" order for free —
+  // Sleeper's own relevance ranking, lower is more well-known. Players
+  // without a rank (mostly deep bench/inactive) sort after everyone who has
+  // one, alphabetically among themselves rather than in arbitrary object-key order.
+  out.sort((a, b) => {
+    if (a.searchRank != null && b.searchRank != null) return a.searchRank - b.searchRank;
+    if (a.searchRank != null) return -1;
+    if (b.searchRank != null) return 1;
+    return a.fullName.localeCompare(b.fullName);
+  });
 
   return out;
 }
@@ -120,10 +151,29 @@ export async function getPlayers(): Promise<NormalizedPlayer[]> {
   return inFlight;
 }
 
-/** Case-insensitive substring search on fullName over the cached list. */
-export async function searchPlayers(query: string): Promise<NormalizedPlayer[]> {
-  const players = await getPlayers();
-  const q = query.trim().toLowerCase();
-  if (!q) return players;
-  return players.filter((p) => p.fullName.toLowerCase().includes(q));
+export interface PlayerQuery {
+  /** Case-insensitive substring match on fullName. Omit/empty to not filter by name. */
+  search?: string;
+  /** Exact position code (QB/RB/WR/TE/K/DEF), case-insensitive. Omit/empty for all positions. */
+  position?: string;
+}
+
+/** Filters the cached, rank-sorted player list by name substring and/or exact
+ * position. Both are optional and combine (AND) — calling with neither
+ * returns the full rank-sorted list, which is what powers "browse all free
+ * agents" when no search text or position filter is active. */
+export async function queryPlayers({ search, position }: PlayerQuery = {}): Promise<NormalizedPlayer[]> {
+  let players = await getPlayers();
+
+  if (position && position.trim()) {
+    const pos = position.trim().toUpperCase();
+    players = players.filter((p) => p.position === pos);
+  }
+
+  const q = search?.trim().toLowerCase();
+  if (q) {
+    players = players.filter((p) => p.fullName.toLowerCase().includes(q));
+  }
+
+  return players;
 }

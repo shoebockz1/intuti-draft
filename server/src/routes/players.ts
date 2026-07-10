@@ -1,21 +1,21 @@
 import { Router } from "express";
-import { getPlayers, searchPlayers } from "../sleeper/sleeperService";
+import { queryPlayers } from "../sleeper/sleeperService";
 
-// GET /api/players — full filtered/tagged Sleeper player list (from cache,
+// GET /api/players — full rank-sorted Sleeper player list (from cache,
 //   fetching+caching from Sleeper first if the cache is empty/stale).
-// GET /api/players?search=... — case-insensitive substring match on fullName,
-//   so the client can do a live search box without downloading the whole list.
-//
-// See HANDOFF.md Section 4 for the agreed plan. Not yet built: /api/players/pool
-// (the eventual free-agent draft pool with live available/drafted status) — that
-// is explicitly future scope, see TODO comments in ProtectedPanel.tsx / ResearchSidebar.tsx.
+// GET /api/players?search=... — case-insensitive substring match on fullName.
+// GET /api/players?position=RB — exact position filter (QB/RB/WR/TE/K/DEF).
+// Both params are optional and combine — this backs both the quick search
+// dropdown in setup and the dedicated Free Agents research page, which needs
+// to browse an entire position sorted by prominence, not just search-to-find.
 
 export const playersRouter = Router();
 
 playersRouter.get("/", async (req, res) => {
   try {
-    const search = typeof req.query.search === "string" ? req.query.search : "";
-    const players = search ? await searchPlayers(search) : await getPlayers();
+    const search = typeof req.query.search === "string" ? req.query.search : undefined;
+    const position = typeof req.query.position === "string" ? req.query.position : undefined;
+    const players = await queryPlayers({ search, position });
     res.json({ players });
   } catch (err) {
     // eslint-disable-next-line no-console
