@@ -1,7 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { DraftState, ProtectedPlayer } from "../engine/types";
 import { NUM_OWNERS } from "../engine/types";
-import { hardResetDraft, pickKeepOwn as apiPickKeepOwn, pickUnprotected as apiPickUnprotected, startDraftOnServer, undoPick as apiUndoPick } from "../api/draft";
+import {
+  hardResetDraft,
+  pickKeepOwn as apiPickKeepOwn,
+  pickUnprotected as apiPickUnprotected,
+  startDraftOnServer,
+  undoPick as apiUndoPick,
+  type TransactionLogEntry,
+} from "../api/draft";
 import { commissionerStatus } from "../api/commissioner";
 import { useRouter } from "../router/Router";
 
@@ -38,6 +45,13 @@ interface AppContextValue {
   // action resolves. `setDraft` is exposed so those call sites can update it.
   draft: DraftState | null;
   setDraft: (d: DraftState | null) => void;
+
+  // transaction log — polled alongside draft state (see useDraftPolling).
+  // Currently only consumed by FifthPlacePanel (to find the "when was the
+  // jump pick made" timestamp, which Pick itself doesn't carry), but kept
+  // here rather than fetched ad-hoc so any future consumer shares one poll.
+  transactionLog: TransactionLogEntry[];
+  setTransactionLog: (log: TransactionLogEntry[]) => void;
 
   // commissioner session (checked once against the server; also updated by
   // login/logout). Used to gate Undo/Reset UI on the shared board, and to
@@ -78,6 +92,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [randOrder, setRandOrder] = useState<string[] | null>(null);
 
   const [draft, setDraft] = useState<DraftState | null>(null);
+  const [transactionLog, setTransactionLog] = useState<TransactionLogEntry[]>([]);
   const [isCommissioner, setIsCommissioner] = useState(false);
 
   const [myOwnerIdx, setMyOwnerIdx] = useState(0);
@@ -204,6 +219,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRandOrder,
     draft,
     setDraft,
+    transactionLog,
+    setTransactionLog,
     isCommissioner,
     setIsCommissioner,
     startDraft,

@@ -3,6 +3,7 @@ import OnClockPanel from "./OnClockPanel";
 import PickPanel from "./PickPanel";
 import ProtectedPanel from "./ProtectedPanel";
 import StatusPanel from "./StatusPanel";
+import FifthPlacePanel from "./FifthPlacePanel";
 import Board from "./Board";
 import ResearchSidebar from "./ResearchSidebar";
 import WhoAmIModal from "../modals/WhoAmIModal";
@@ -90,6 +91,7 @@ export default function DraftScreen() {
           <div className="panel">
             <StatusPanel />
           </div>
+          <FifthPlacePanel />
         </div>
         <div className="board-outer">
           <Board />

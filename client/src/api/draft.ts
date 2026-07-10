@@ -22,6 +22,27 @@ export interface PickResponse {
   toast?: string;
 }
 
+// Mirrors server/src/draft/store.ts's TransactionLogEntry/TransactionAction —
+// kept as a separate client-side copy rather than a shared import since
+// client and server are separate TS projects with no shared package today.
+export type TransactionAction =
+  | "start"
+  | "keep"
+  | "unprotected"
+  | "fifth-jump"
+  | "undo"
+  | "soft-reset"
+  | "hard-reset"
+  | "restore";
+
+export interface TransactionLogEntry {
+  timestamp: string;
+  action: TransactionAction;
+  ownerName?: string;
+  playerName?: string;
+  detail?: string;
+}
+
 async function jsonOrThrow<T>(res: Response): Promise<T> {
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
   if (!res.ok) {
@@ -85,4 +106,11 @@ export async function hardResetDraft(): Promise<void> {
     credentials: "include",
   });
   await jsonOrThrow(res);
+}
+
+/** Open to everyone — read-only history, same visibility as /state. */
+export async function fetchTransactionLog(): Promise<TransactionLogEntry[]> {
+  const res = await fetch(`${API_BASE}/api/draft/log`, { credentials: "include" });
+  const data = await jsonOrThrow<{ log: TransactionLogEntry[] }>(res);
+  return data.log;
 }
