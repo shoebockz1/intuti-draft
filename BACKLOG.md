@@ -12,6 +12,7 @@ Last updated: 2026-07-09 (late night)
 - **Not started** — Final human review pass of the "Load 2025 rosters" fixture data close to draft day, to catch any roster moves/trades since the source screenshots were taken.
 - **Not started** — Full 18-round, 10-owner rehearsal draft on the hosted version of the new server-authoritative architecture — only individual mechanics have been spot-checked so far, not a full run-through.
 - **Not started** — Optimize the mobile/tablet experience. The site is confirmed *reachable* on phones (loads correctly off-network), but the layout itself was designed/tested on desktop and hasn't been reviewed or tuned for small touch screens — owners will likely be using phones during the actual draft, so this is about usability there (tap targets, board scroll/layout, panel stacking, etc.), not just "does it load."
+- **Not started** — Draft-day reminder: upgrade Render from Free to the paid Starter tier ($7/mo, prorated) the night before / morning of the draft to eliminate cold-start delays, then downgrade back to Free afterward. **Do this only when no draft is in progress** — switching instance types restarts the server, which would wipe the live draft (no persistence yet, see below). Also remember to actually downgrade afterward or it'll keep billing $7/mo indefinitely.
 
 ## Pending on external parties
 
