@@ -4,13 +4,14 @@ import { useRouter } from "../router/Router";
 import { useDraftPolling } from "../hooks/useDraftPolling";
 import { queryPlayers, type RemotePlayer } from "../api/players";
 import { getPlayerStatus } from "../engine/playerStatus";
+import { POSITION_STAT_COLUMNS } from "../data/freeAgentColumns";
 
 // "/players" — dedicated Free Agent research page. Separate from the compact
 // sidebar widget on the draft board: this is for actually browsing/filtering
-// by position and sorting by prominence (Sleeper's own relevance ranking),
-// not just searching for one name you already have in mind. Requires a
-// draft to be in progress (same as the board) since "available / drafted /
-// protected" status only means anything in the context of a live draft.
+// by position and sorting by prominence/rank, not just searching for one
+// name you already have in mind. Requires a draft to be in progress (same as
+// the board) since "available / drafted / protected" status only means
+// anything in the context of a live draft.
 //
 // Polls the live DraftState itself (useDraftPolling) rather than relying on
 // whatever the board last had, since this page is meant to be open on its
@@ -20,12 +21,15 @@ import { getPlayerStatus } from "../engine/playerStatus";
 const POSITIONS = ["ALL", "QB", "RB", "WR", "TE", "K", "DEF"] as const;
 const SEARCH_DEBOUNCE_MS = 250;
 
+type StatusFilter = "available" | "drafted";
+
 export default function FreeAgentsRoute() {
   const { draft, draftUnprotectedPick } = useApp();
   const { navigate } = useRouter();
   const { loading, error } = useDraftPolling();
 
   const [position, setPosition] = useState<(typeof POSITIONS)[number]>("ALL");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("available");
   const [search, setSearch] = useState("");
   const [players, setPlayers] = useState<RemotePlayer[]>([]);
   const [fetching, setFetching] = useState(true);
@@ -86,6 +90,16 @@ export default function FreeAgentsRoute() {
   }
 
   const canDraft = draft.cur < draft.picks.length;
+  const statColumns = position === "ALL" ? [] : (POSITION_STAT_COLUMNS[position] ?? []);
+  const showRank = position !== "ALL";
+
+  // Most owners are here to see who's left, not to re-confirm who's already
+  // gone — so "available" is the default view, with drafted+protected
+  // grouped into a single second toggle state rather than a third tab.
+  const visiblePlayers = players.filter((p) => {
+    const status = getPlayerStatus(draft, p.fullName);
+    return statusFilter === "available" ? status.kind === "available" : status.kind !== "available";
+  });
 
   return (
     <div>
@@ -109,6 +123,20 @@ export default function FreeAgentsRoute() {
             {pos}
           </button>
         ))}
+        <div className="fa-status-toggle">
+          <button
+            className={`fa-tab ${statusFilter === "available" ? "active" : ""}`}
+            onClick={() => setStatusFilter("available")}
+          >
+            Available
+          </button>
+          <button
+            className={`fa-tab ${statusFilter === "drafted" ? "active" : ""}`}
+            onClick={() => setStatusFilter("drafted")}
+          >
+            Drafted/Protected
+          </button>
+        </div>
         <input
           type="text"
           className="fa-search-input"
@@ -129,22 +157,26 @@ export default function FreeAgentsRoute() {
               <th>Team</th>
               <th>Exp</th>
               <th>Injury</th>
+              {showRank && <th>Rank</th>}
+              {statColumns.map((col) => (
+                <th key={col.key}>{col.label}</th>
+              ))}
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {fetching && (
               <tr className="fa-empty-row">
-                <td colSpan={6}>Loading players…</td>
+                <td colSpan={6 + statColumns.length}>Loading players…</td>
               </tr>
             )}
-            {!fetching && players.length === 0 && (
+            {!fetching && visiblePlayers.length === 0 && (
               <tr className="fa-empty-row">
-                <td colSpan={6}>No matches.</td>
+                <td colSpan={6 + statColumns.length}>No matches.</td>
               </tr>
             )}
             {!fetching &&
-              players.map((p) => {
+              visiblePlayers.map((p) => {
                 const status = getPlayerStatus(draft, p.fullName);
                 return (
                   <tr key={p.playerId}>
@@ -156,6 +188,10 @@ export default function FreeAgentsRoute() {
                     <td>{p.nflTeam ?? "—"}</td>
                     <td>{p.isRookie ? "Rookie" : p.yearsExp != null ? `${p.yearsExp} yrs` : "—"}</td>
                     <td className={p.injuryStatus ? "fa-injury" : ""}>{p.injuryStatus ?? "—"}</td>
+                    {showRank && <td>{p.posRank ?? "—"}</td>}
+                    {statColumns.map((col) => (
+                      <td key={col.key}>{p.stats?.[col.key] ?? "—"}</td>
+                    ))}
                     <td>
                       {status.kind === "available" && canDraft && (
                         <button

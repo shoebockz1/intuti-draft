@@ -3,6 +3,33 @@
 
 import { API_BASE } from "./config";
 
+/** Raw 2025 season counting stats — only the keys relevant to this player's
+ * position are present (see server/src/sleeper/sleeperService.ts
+ * POSITION_STAT_KEYS). Deliberately raw production, not fantasy points. */
+export interface PlayerStats {
+  passCmp?: number;
+  passAtt?: number;
+  passYd?: number;
+  passTd?: number;
+  passInt?: number;
+  rushAtt?: number;
+  rushYd?: number;
+  rushTd?: number;
+  rec?: number;
+  recTgt?: number;
+  recYd?: number;
+  recTd?: number;
+  fgm?: number;
+  fga?: number;
+  xpm?: number;
+  xpa?: number;
+  sack?: number;
+  int?: number;
+  fumRec?: number;
+  defTd?: number;
+  ptsAllow?: number;
+}
+
 export interface RemotePlayer {
   playerId: string;
   fullName: string;
@@ -15,6 +42,11 @@ export interface RemotePlayer {
   yearsExp: number | null;
   searchRank: number | null;
   depthChartOrder: number | null;
+  /** Standard-scoring fantasy rank within this player's position for the 2025 season.
+   * Only meaningful compared within the same position — see queryPlayers server-side. */
+  posRank: number | null;
+  gamesPlayed: number | null;
+  stats: PlayerStats | null;
 }
 
 interface PlayersResponse {

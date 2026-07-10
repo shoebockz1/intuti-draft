@@ -22,6 +22,14 @@
 .fa-tab:hover { color: var(--text2); border-color: var(--text3); }
 .fa-tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
 
+.fa-status-toggle {
+  display: flex;
+  gap: 4px;
+  padding-left: 10px;
+  margin-left: 6px;
+  border-left: 1px solid var(--border);
+}
+
 .fa-search-input {
   flex: 1;
   min-width: 180px;
