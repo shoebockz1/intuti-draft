@@ -10,22 +10,18 @@ import { useApp } from "../../context/AppContext";
 // history / a real reproduction of the hidden-cell case before assuming
 // this panel is redundant with the board.
 export default function FifthPlacePanel() {
-  const { draft, transactionLog } = useApp();
+  const { draft } = useApp();
 
   if (!draft) return null;
 
   const winner = draft.owners[draft.fifthPos];
   const jumpPick = draft.picks.find((p) => p.isFifthJump && p.player != null);
-  const jumpLogEntry = transactionLog.find((e) => e.action === "fifth-jump");
 
-  const timestamp = jumpLogEntry
-    ? new Date(jumpLogEntry.timestamp).toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      })
-    : null;
+  // "Where in the draft" the jump happened, not when in real time — the
+  // jump pick is inserted with the same round/slot as the pick it follows
+  // (see insertFifthJump in the engine), so those fields already say
+  // exactly where it landed in the draft order.
+  const location = jumpPick ? `After Round ${jumpPick.round}, Pick ${jumpPick.slot}` : null;
 
   return (
     <div className="panel">
@@ -39,7 +35,7 @@ export default function FifthPlacePanel() {
         <div style={{ fontSize: 12 }}>
           <div style={{ color: "var(--text)", marginBottom: 2 }}>{winner?.name ?? "?"}</div>
           <div style={{ color: "var(--purple)", marginBottom: 2 }}>{jumpPick.player}</div>
-          {timestamp && <div style={{ fontSize: 10, color: "var(--text3)" }}>{timestamp}</div>}
+          {location && <div style={{ fontSize: 10, color: "var(--text3)" }}>{location}</div>}
         </div>
       )}
     </div>
