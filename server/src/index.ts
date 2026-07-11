@@ -5,7 +5,7 @@ import https from "node:https";
 import express from "express";
 import cors from "cors";
 import session from "express-session";
-import { config } from "./config";
+import { config, isProduction } from "./config";
 import { healthRouter } from "./routes/health";
 import { playersRouter } from "./routes/players";
 import { yahooRouter } from "./routes/yahoo";
@@ -19,8 +19,6 @@ import { hydrateFromPersistence } from "./draft/store";
 // Render's edge (this process only ever speaks plain HTTP internally). In
 // local dev, the client runs separately under Vite for hot-reload, and this
 // process still terminates HTTPS itself via mkcert (see below).
-const isProduction = process.env.NODE_ENV === "production";
-
 const app = express();
 
 // Render sits in front of this process as a reverse proxy — without this,

@@ -9,11 +9,19 @@
 // before — in-memory only, no errors, just a one-time console note.
 
 import { Redis } from "@upstash/redis";
-import { config } from "../config";
+import { config, isProduction } from "../config";
 import type { DraftState } from "../draft/types";
 import type { DraftSnapshot, TransactionLogEntry } from "../draft/store";
 
-const REDIS_KEY = "intuti:draft-state";
+// Namespaced by environment on purpose: local dev's .env was set up with
+// the same Upstash credentials as production (there's only one free-tier
+// database), and a local test session silently overwrote a real live draft
+// through this shared key as a result — confirmed via production's own
+// snapshot history showing test-draft data. Keying dev traffic separately
+// means that mistake is now structurally impossible even if dev and prod
+// point at the same Redis instance again in the future. Production keeps
+// the original key so existing persisted data there isn't orphaned.
+const REDIS_KEY = isProduction ? "intuti:draft-state" : "intuti:draft-state:dev";
 
 export interface PersistedPayload {
   draftState: DraftState | null;

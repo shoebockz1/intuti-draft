@@ -10,6 +10,8 @@ function required(name: string): string {
   return value;
 }
 
+export const isProduction = process.env.NODE_ENV === "production";
+
 export const config = {
   port: process.env.PORT ? Number(process.env.PORT) : 4000,
   clientOrigin: process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
