@@ -14,6 +14,49 @@ import { useRouter } from "../router/Router";
 
 export type SetupTab = "order" | "protected" | "randomizer";
 
+const IDENTITY_KEY = "intuti.whoami";
+
+interface StoredIdentity {
+  idx: number;
+  /** Owner names joined — see readStoredIdentity for why this is stored alongside the index. */
+  ownersKey: string;
+}
+
+// "Who are you?" is a per-viewer convenience with no enforcement (HANDOFF.md),
+// but it has to survive a reload and be shared across the several tabs an
+// owner keeps open, or they get re-prompted in every tab and every one of
+// them silently defaults to whoever happens to be first in the draft order.
+//
+// The index is stored alongside a signature of the owner names, because an
+// index alone is meaningless across drafts: start a new draft with different
+// teams (or the same teams in a new order) and a remembered "3" now points at
+// someone else entirely. On a mismatch we re-prompt instead of guessing.
+function ownersKeyOf(draft: DraftState | null): string {
+  return draft ? draft.owners.map((o) => o.name).join("|") : "";
+}
+
+function readStoredIdentity(): StoredIdentity | null {
+  try {
+    const raw = localStorage.getItem(IDENTITY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StoredIdentity>;
+    if (typeof parsed.idx !== "number" || typeof parsed.ownersKey !== "string") return null;
+    return { idx: parsed.idx, ownersKey: parsed.ownersKey };
+  } catch {
+    // Safari private browsing throws on localStorage access, and a corrupted
+    // value should not take the app down. Either way: treat as "not known yet".
+    return null;
+  }
+}
+
+function writeStoredIdentity(value: StoredIdentity): void {
+  try {
+    localStorage.setItem(IDENTITY_KEY, JSON.stringify(value));
+  } catch {
+    // Non-fatal — identity just will not persist for this viewer.
+  }
+}
+
 function defaultOwnerNames(): string[] {
   return Array.from({ length: NUM_OWNERS }, (_, i) => `Owner ${i + 1}`);
 }
@@ -95,7 +138,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [transactionLog, setTransactionLog] = useState<TransactionLogEntry[]>([]);
   const [isCommissioner, setIsCommissioner] = useState(false);
 
-  const [myOwnerIdx, setMyOwnerIdx] = useState(0);
+  const [myOwnerIdx, setMyOwnerIdxState] = useState(0);
   const [whoAmIOpen, setWhoAmIOpen] = useState(false);
 
   const [toast, setToast] = useState<string | null>(null);
@@ -107,6 +150,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     toastTimer.current = setTimeout(() => setToast(null), 2500);
   }, []);
 
+  // Persist on every change rather than only on modal-confirm: the select in
+  // WhoAmIModal fires this directly, and an owner who picks their name and
+  // then navigates away without pressing Confirm should still be remembered.
+  const setMyOwnerIdx = useCallback(
+    (i: number) => {
+      setMyOwnerIdxState(i);
+      writeStoredIdentity({ idx: i, ownersKey: ownersKeyOf(draft) });
+    },
+    [draft],
+  );
+
   // Whenever the draft goes from "not started" to "in progress" — whether
   // because this tab just started it, or because a poll picked up a draft
   // someone else started — prompt this viewer for "who are you" once. This
@@ -114,7 +168,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const prevDraftRef = useRef<DraftState | null>(null);
   useEffect(() => {
     if (!prevDraftRef.current && draft) {
-      setWhoAmIOpen(true);
+      // Only prompt when we do not already know who this viewer is for THIS
+      // draft. Without the stored check, opening the board, the player list
+      // and the rosters page in three tabs means three identical prompts.
+      const stored = readStoredIdentity();
+      const currentKey = ownersKeyOf(draft);
+      const usable =
+        stored !== null &&
+        stored.ownersKey === currentKey &&
+        stored.idx >= 0 &&
+        stored.idx < draft.owners.length;
+
+      if (usable) {
+        setMyOwnerIdxState(stored.idx);
+      } else {
+        setWhoAmIOpen(true);
+      }
     }
     prevDraftRef.current = draft;
   }, [draft]);

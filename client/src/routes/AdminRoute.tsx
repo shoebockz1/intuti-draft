@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "../context/AppContext";
 import { commissionerLogin, commissionerStatus } from "../api/commissioner";
 import { fetchDraftState, isDraftInProgress } from "../api/draft";
-import { useRouter } from "../router/Router";
+import { AppLink } from "../router/Router";
 import SetupScreen from "../components/setup/SetupScreen";
 
 // "/admin" — commissioner-only setup flow (Draft Order / Protected Players /
@@ -12,7 +12,6 @@ import SetupScreen from "../components/setup/SetupScreen";
 // POST /api/commissioner/login).
 export default function AdminRoute() {
   const { isCommissioner, setIsCommissioner, setDraft, setOwnerNames, setProtectedPlayers, setFifthPos } = useApp();
-  const { navigate } = useRouter();
   const [checking, setChecking] = useState(true);
   const [passcode, setPasscode] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -99,9 +98,9 @@ export default function AdminRoute() {
           <button className="btn primary" style={{ width: "100%" }} onClick={submitLogin} disabled={loggingIn}>
             Enter
           </button>
-          <button className="btn sm" style={{ width: "100%", marginTop: 8 }} onClick={() => navigate("/")}>
+          <AppLink className="btn sm" style={{ width: "100%", marginTop: 8 }} to="/">
             View draft board instead
-          </button>
+          </AppLink>
         </div>
       </div>
     );

@@ -35,7 +35,7 @@ export default function DraftOrderTab() {
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: "24px" }}>
+      <div className="order-grid">
         <div>
           <div className="slabel" style={{ marginBottom: 10 }}>
             Owner names in pick order — 1 picks first

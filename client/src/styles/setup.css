@@ -14,6 +14,22 @@
 }
 
 /* ORDER TAB */
+/* Owner list beside the 5th-place-winner panel. The 320px rail is fixed, so
+   below ~700px it stops fitting and stacks instead — previously an inline
+   "1fr 320px" that ran the panel clean off the right edge of a phone. */
+.order-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+}
+
+@media (max-width: 700px) {
+  .order-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
 .order-row {
   display: flex;
   align-items: center;
@@ -80,6 +96,17 @@
 .prot-search-meta { color: var(--text3); font-size: 11px; white-space: nowrap; }
 
 /* RANDOMIZER TAB */
+/* The two name columns. minmax(0, 1fr) rather than 1fr because a text input's
+   min-content width is its default ~20-character size, which a bare 1fr track
+   refuses to shrink under — that pushed the second column off a phone screen. */
+.rand-inputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.rand-inputs input { width: 100%; }
+
 .rand-row {
   display: flex;
   align-items: center;
@@ -94,3 +121,29 @@
 .rand-pos { font-size: 12px; color: var(--text3); width: 22px; flex-shrink: 0; }
 .rand-name { font-size: 14px; color: var(--text); }
 .rand-hi { border-color: var(--green); background: var(--green-bg); }
+
+/* SMALL SCREENS */
+@media (max-width: 640px) {
+  .resume-banner { flex-wrap: wrap; gap: 10px; font-size: 13px; }
+
+  /* 16px keeps iOS from zooming the page on focus — setup is 10 names typed
+     back to back, so a zoom on every field would be relentless. */
+  /* Needs its own min-height: these inputs carry no type="text" attribute, so
+     the global input[type=text] touch sizing in theme.css doesn't match them. */
+  .order-input { font-size: 16px; padding: 6px 0; min-height: 44px; }
+  .order-num { font-size: 13px; width: 20px; }
+  .order-row { gap: 6px; padding: 6px 0; }
+
+  .prot-tag { font-size: 13px; padding: 6px 12px; }
+  .prot-tag-x { padding: 0 4px; font-size: 15px; }
+
+  .prot-search-item { padding: 12px 12px; font-size: 14px; }
+  .prot-search-meta { font-size: 12px; }
+  .prot-search-dropdown { max-height: 260px; }
+
+  /* One name per row — two columns of 16px inputs don't fit a 375px screen. */
+  .rand-inputs { grid-template-columns: minmax(0, 1fr); }
+
+  .rand-row { padding: 12px; }
+  .rand-name { font-size: 15px; }
+}

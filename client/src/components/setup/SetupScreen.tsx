@@ -1,12 +1,11 @@
 import { useApp } from "../../context/AppContext";
-import { useRouter } from "../../router/Router";
+import { AppLink } from "../../router/Router";
 import DraftOrderTab from "./DraftOrderTab";
 import ProtectedPlayersTab from "./ProtectedPlayersTab";
 import OrderRandomizerTab from "./OrderRandomizerTab";
 
 export default function SetupScreen() {
   const { setupTab, setSetupTab, draft, hardReset } = useApp();
-  const { navigate } = useRouter();
 
   return (
     <div>
@@ -21,9 +20,9 @@ export default function SetupScreen() {
         <div className="resume-banner">
           <span>
             Draft in progress —{" "}
-            <button className="btn sm primary" onClick={() => navigate("/")}>
+            <AppLink className="btn sm primary" to="/">
               View draft board
-            </button>
+            </AppLink>
           </span>
           {/* Reset lives here, admin-only, rather than on the shared board
               — see DraftScreen.tsx for why. No separate "soft reset" tier

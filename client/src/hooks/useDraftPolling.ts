@@ -10,6 +10,19 @@ const POLL_INTERVAL_MS = 2000;
 // (e.g. the Free Agents research page, which needs to know who's already
 // been drafted while browsing) can share the same polling behavior instead
 // of the draft mirror going stale the moment you navigate off "/".
+//
+// Polling is gated on tab visibility. Owners keep several tabs open at once
+// (board / players / rosters, mirroring the ClickyDraft workflow), and each
+// tick costs two requests — state plus log. Ungated, ten owners with three
+// tabs each would hold a free-tier Render instance at ~30 req/s for a
+// three-hour draft, to render pages nobody is looking at. A hidden tab
+// skips the network entirely and re-syncs the moment it's brought forward,
+// so the whole multi-tab workspace costs the server no more than one tab.
+//
+// This also covers phones, where the problem is the opposite one: iOS
+// suspends background timers outright, so a backgrounded tab wakes up
+// showing a stale board. The visibilitychange poll makes coming back to the
+// tab an immediate refresh rather than a wait of up to POLL_INTERVAL_MS.
 export function useDraftPolling() {
   const { setDraft, setTransactionLog } = useApp();
   const [loading, setLoading] = useState(true);
@@ -44,11 +57,27 @@ export function useDraftPolling() {
       }
     }
 
-    poll();
-    const interval = setInterval(poll, POLL_INTERVAL_MS);
+    function tick() {
+      if (document.hidden) return;
+      void poll();
+    }
+
+    function onVisibilityChange() {
+      if (!document.hidden) void poll();
+    }
+
+    // Always run once on mount, even if the tab starts hidden — otherwise a
+    // background tab would sit on the "Loading…" state indefinitely and show
+    // it when brought forward.
+    void poll();
+
+    const interval = setInterval(tick, POLL_INTERVAL_MS);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
     return () => {
       cancelled = true;
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [setDraft, setTransactionLog]);
 

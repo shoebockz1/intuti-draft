@@ -33,7 +33,7 @@
   grid-template-columns: 200px 1fr 210px;
   gap: 12px;
 }
-.sidebar { display: flex; flex-direction: column; gap: 8px; }
+.sidebar { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 
 /* ON CLOCK */
 .clock-name { font-size: 18px; color: var(--text); margin: 4px 0 2px; }
@@ -77,6 +77,11 @@
 .pick-input:focus { border-color: var(--text3); }
 
 /* PROTECTED LIST */
+/* Capped so a full 18-player protected roster can't push the board and the
+   seal-status panel off the bottom of a desktop sidebar. Was an inline style
+   on DraftScreen; moved here so the mobile rules below can lift the cap. */
+.p-protected { max-height: 200px; overflow-y: auto; }
+
 .prot-item { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); }
 .prot-item:last-child { border-bottom: none; }
 .prot-item.used { opacity: .3; }
@@ -90,19 +95,31 @@
 .d-broken { background: var(--red); }
 
 /* BOARD */
-.board-outer { overflow-x: auto; }
+/* min-width:0 is load-bearing, not defensive: a grid item defaults to
+   min-width:auto, which refuses to shrink below its content. Without it the
+   10-column board forces the middle track wider than the container, the 1fr
+   track gets squeezed to 0, and overflow-x has nothing to scroll. */
+.board-outer { overflow-x: auto; min-width: 0; }
 .board-outer::-webkit-scrollbar { height: 4px; }
 .board-outer::-webkit-scrollbar-track { background: var(--bg2); }
 .board-outer::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-.board { border-collapse: collapse; table-layout: fixed; }
+/* min-width:max-content stops the fixed layout from shrinking all 10 columns
+   to fit a narrow container — it holds them at their declared width and lets
+   .board-outer scroll instead. Resolves to the sum of .col-* widths, so the
+   phone breakpoint's wider columns are picked up automatically. */
+.board { border-collapse: collapse; table-layout: fixed; min-width: max-content; }
+.board .col-rnd { width: 26px; }
+.board .col-owner { width: 70px; }
 .board th {
   font-size: 9px; font-weight: 400; color: var(--text3); text-align: left; padding: 5px 4px;
   border-bottom: 1px solid var(--border); letter-spacing: .06em;
   text-transform: uppercase; position: sticky; top: 0; background: var(--bg); z-index: 1;
 }
-.board th.rnd-th { width: 26px; white-space: nowrap; }
+/* Column widths come from the colgroup above, never from th/td — declaring
+   both makes the cell rule (higher specificity) win the fixed-layout column
+   sizing and silently ignore the responsive .col-owner widths. */
+.board th.rnd-th { white-space: nowrap; }
 .board th.owner-th {
-  width: 70px;
   /* Full team names, wrapped across lines instead of truncated to one word —
      several real team names in this league start with "The"/"tHe", which
      collapsed to an indistinguishable "THE" under the old first-word-only
@@ -114,8 +131,8 @@
   vertical-align: bottom;
   padding-bottom: 6px;
 }
-.board td { padding: 3px 4px; border-bottom: 1px solid var(--border); vertical-align: top; width: 70px; }
-.board td.rnd-td { font-size: 9px; color: var(--text3); width: 26px; padding-top: 5px; }
+.board td { padding: 3px 4px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.board td.rnd-td { font-size: 9px; color: var(--text3); padding-top: 5px; }
 .cell { border-radius: 4px; padding: 3px 4px; min-height: 36px; }
 .cell-cur { background: rgba(186, 117, 23, .18); border: 1px solid rgba(186, 117, 23, .4); }
 .cell-kept { background: rgba(29, 158, 117, .12); border: 1px solid rgba(29, 158, 117, .25); }
@@ -141,6 +158,22 @@
 .rpanel-toggle.open { transform: rotate(180deg); }
 .rpanel-body { padding: 12px 14px; display: none; }
 .rpanel-body.open { display: block; }
+/* Team roster view (sidebar + /rosters page). These were inline styles until
+   the view was shared between both places. Moving the select to a class also
+   fixed a real mobile bug: an inline font-size beats any stylesheet, so the
+   12px inline value survived the 16px touch rule and kept triggering iOS
+   Safari's focus-zoom. */
+.roster-select { width: 100%; margin-bottom: 10px; font-size: 12px; }
+.roster-seal {
+  font-size: 10px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.roster-seal.intact { color: var(--green); }
+.roster-seal.broken { color: var(--red); }
+.roster-empty { font-size: 11px; color: var(--text3); }
+
 .roster-item { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border); }
 .roster-item:last-child { border-bottom: none; }
 .roster-item-name { font-size: 12px; color: var(--text); }
@@ -149,3 +182,113 @@
 .rs-kept { color: var(--green); }
 .rs-free { color: var(--red); }
 .rs-protected { color: var(--text3); }
+
+/* ---------------------------------------------------------------------------
+   NARROW SCREENS — stack the three-column draft layout
+
+   The desktop layout is 200px + 1fr + 210px. Those two fixed rails need ~434px
+   before the board gets a single pixel, so anywhere under ~1080px the board is
+   too cramped to read; on a phone the rails alone overflowed the container and
+   collapsed the board track to 0.
+
+   `display: contents` on .sidebar promotes its five panels to grid items so
+   they can be reordered independently — the board belongs directly after the
+   pick controls on a phone, not below the whole sidebar. Reading order becomes:
+   who's up -> make the pick -> keep buttons -> board -> everything else.
+   --------------------------------------------------------------------------- */
+@media (max-width: 1080px) {
+  .draft-layout { grid-template-columns: minmax(0, 1fr); }
+
+  .sidebar { display: contents; }
+
+  .p-onclock     { order: 1; }
+  .p-pick        { order: 2; }
+  .p-protected   { order: 3; }
+  .board-outer   { order: 4; }
+  .p-status      { order: 5; }
+  .p-fifth       { order: 6; }
+  .right-sidebar { order: 7; }
+
+  /* .sidebar's own flex gap disappears with display:contents, so the grid's
+     row-gap takes over spacing between the promoted panels. */
+  .draft-layout { row-gap: 8px; }
+}
+
+/* Tablet: once stacked, the board gets the full width and at 70px columns it
+   lands ~20px over on a 768px screen — just enough to clip the 10th owner
+   while still looking like it fits, which is worse than obviously scrolling.
+   66px columns bring all 10 back on screen at typical tablet widths. */
+@media (min-width: 641px) and (max-width: 1080px) {
+  .board .col-owner { width: 66px; }
+}
+
+@media (max-width: 640px) {
+  .draft-header { flex-wrap: wrap; }
+  .header-actions { justify-content: flex-start; gap: 8px; }
+
+  .legend { gap: 8px 12px; }
+  .legend-item { font-size: 11px; }
+
+  .clock-name { font-size: 20px; }
+  .clock-meta { font-size: 12px; }
+  .badge { font-size: 11px; padding: 3px 9px; }
+
+  .ptab { font-size: 13px; padding: 11px 6px; min-height: 44px; }
+  .warn, .info { font-size: 12px; }
+  .pick-input { font-size: 16px; padding: 10px 12px; }
+
+  /* An 18-player roster at touch size runs ~1200px — uncapped it buries the
+     board under a wall of Keep buttons. Cap it to half the screen instead,
+     with overscroll-behavior stopping the scroll from chaining to the page
+     when the list hits its end (the usual reason nested scrollers feel broken
+     on touch). */
+  .p-protected {
+    max-height: 50vh;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .prot-item { padding: 7px 0; gap: 10px; }
+  .prot-item-name { font-size: 14px; }
+
+  .status-row { padding: 6px 0; }
+  .status-name { font-size: 13px; max-width: none; }
+
+  .roster-select { font-size: 16px; }
+  .roster-seal { font-size: 12px; }
+  .roster-empty { font-size: 13px; }
+  .roster-item { padding: 8px 0; }
+  .roster-item-name { font-size: 14px; }
+  .roster-status { font-size: 11px; }
+
+  .rpanel-header { padding: 14px; min-height: 48px; }
+  .rpanel-title { font-size: 11px; }
+
+  /* BOARD — 10 owner columns can't fit a phone at any readable size, so it
+     stays a horizontal scroller. Two things make that usable: momentum
+     scrolling, and pinning the round number so you never lose your place
+     while scrolling sideways through 18 rounds. */
+  .board-outer {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .board-outer::-webkit-scrollbar { height: 6px; }
+
+  .board th.rnd-th,
+  .board td.rnd-td {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--bg);
+    font-size: 11px;
+  }
+  .board th.rnd-th { z-index: 3; }
+
+  .board .col-rnd { width: 30px; }
+  .board .col-owner { width: 82px; }
+  .board th.owner-th { font-size: 10px; }
+  .cell { min-height: 44px; padding: 4px 5px; }
+  .cell-pnum { font-size: 10px; }
+  .cell-player { font-size: 12px; }
+  .cell-picking, .cell-skip-text { font-size: 10px; }
+}

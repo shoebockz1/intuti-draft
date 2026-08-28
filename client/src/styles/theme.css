@@ -95,6 +95,18 @@ h1 {
 .btn.danger:hover { background: #2e1010; border-color: var(--red); }
 .btn:disabled { opacity: .25; cursor: default; }
 
+/* Anchors carrying .btn — in-app navigation uses real <a> elements so pages
+   can be opened in their own tab (see AppLink in router/Router.tsx). An
+   anchor does not inherit a button box: it is inline, underlines its text,
+   and ignores width. Normalise here rather than at each call site, so the
+   several links that pass width:100% keep working. */
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 /* TABS */
 .top-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
 .top-tab {
@@ -156,3 +168,36 @@ input[type=text]::placeholder { color: var(--text3); }
   letter-spacing: .04em;
 }
 .toast.show { opacity: 1; }
+
+/* ---------------------------------------------------------------------------
+   TOUCH / SMALL SCREENS
+
+   The whole UI was designed and tested on desktop, but owners draft from their
+   phones — so every control below is sized up to a real touch target and the
+   text is raised out of the 9-11px range that only works on a monitor.
+
+   The 16px floor on focusable inputs is not cosmetic: iOS Safari auto-zooms
+   the page whenever a focused input's font-size is under 16px, which on a
+   draft board leaves you zoomed in and hunting for the pick you just made.
+   --------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  #app { padding: .75rem; }
+
+  h1 { font-size: 22px; }
+  .league-sub { font-size: 10px; }
+
+  input[type=text], select { font-size: 16px; padding: 10px 12px; min-height: 44px; }
+
+  .btn { font-size: 14px; padding: 11px 18px; min-height: 44px; }
+  .btn.sm { font-size: 13px; padding: 9px 14px; min-height: 40px; }
+  /* .btn.xs is the "Keep" button — the single most-pressed control in the
+     draft (an owner with an intact seal keeps a player every turn). It was
+     42x19px. Full 44px target, even though the protected list is long. */
+  .btn.xs { font-size: 13px; padding: 10px 14px; min-height: 44px; }
+
+  .top-tab { font-size: 13px; padding: 13px 14px; min-height: 44px; }
+
+  .panel { padding: 12px 13px; }
+
+  .toast { bottom: 16px; font-size: 13px; padding: 10px 18px; max-width: calc(100vw - 32px); }
+}
