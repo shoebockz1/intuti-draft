@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useApp } from "../context/AppContext";
-import { useRouter } from "../router/Router";
+import { AppLink } from "../router/Router";
+import PageHeader from "../components/common/PageHeader";
+import OnClockBar from "../components/common/OnClockBar";
 import { useDraftPolling } from "../hooks/useDraftPolling";
 import { queryPlayers, type RemotePlayer } from "../api/players";
 import { getPlayerStatus } from "../engine/playerStatus";
@@ -26,7 +28,6 @@ type StatusFilter = "available" | "drafted" | "all";
 
 export default function FreeAgentsRoute() {
   const { draft, draftUnprotectedPick } = useApp();
-  const { navigate } = useRouter();
   const { loading, error } = useDraftPolling();
 
   const [position, setPosition] = useState<(typeof POSITIONS)[number]>("ALL");
@@ -84,9 +85,9 @@ export default function FreeAgentsRoute() {
       <div style={{ padding: "3rem 1rem", textAlign: "center" }}>
         <h1>Intuti</h1>
         <p style={{ color: "var(--text3)", margin: "12px 0" }}>No draft in progress yet.</p>
-        <button className="btn" onClick={() => navigate("/")}>
+        <AppLink to="/" className="btn">
           ← Back to board
-        </button>
+        </AppLink>
       </div>
     );
   }
@@ -129,26 +130,24 @@ export default function FreeAgentsRoute() {
 
   return (
     <div>
-      <div className="draft-header">
-        <div>
-          <h1>Intuti</h1>
-          <div className="league-sub">Free Agent Research</div>
-        </div>
-        <button className="btn sm" onClick={() => navigate("/")}>
-          ← Back to board
-        </button>
-      </div>
+      <PageHeader subtitle="Free Agent Research" />
+      <OnClockBar />
 
       <div className="fa-toolbar">
-        {POSITIONS.map((pos) => (
-          <button
-            key={pos}
-            className={`fa-tab ${position === pos ? "active" : ""}`}
-            onClick={() => setPosition(pos)}
-          >
-            {pos}
-          </button>
-        ))}
+        {/* Wrapper exists for the phone layout: the position tabs become one
+            horizontally-scrolling strip instead of wrapping onto three rows
+            and eating a third of the screen before any players show. */}
+        <div className="fa-tab-row">
+          {POSITIONS.map((pos) => (
+            <button
+              key={pos}
+              className={`fa-tab ${position === pos ? "active" : ""}`}
+              onClick={() => setPosition(pos)}
+            >
+              {pos}
+            </button>
+          ))}
+        </div>
         <div className="fa-status-toggle">
           <button
             className={`fa-tab ${statusFilter === "available" ? "active" : ""}`}

@@ -16,14 +16,16 @@ export default function Board() {
 
   if (!draft) return null;
 
-  const colW = 70;
-
   return (
     <table className="board">
+      {/* Column widths live in draft.css (.col-rnd / .col-owner) rather than
+          inline here, so the phone breakpoint can widen them. Inline widths
+          plus table-layout:fixed let the browser squeeze all 10 columns down
+          to fit the container instead of overflowing into the scroller. */}
       <colgroup>
-        <col style={{ width: 26 }} />
+        <col className="col-rnd" />
         {draft.owners.map((o) => (
-          <col style={{ width: colW }} key={o.idx} />
+          <col className="col-owner" key={o.idx} />
         ))}
       </colgroup>
       <thead>

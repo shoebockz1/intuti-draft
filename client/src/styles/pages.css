@@ -1,0 +1,104 @@
+/* Shared chrome for the standalone tab-workspace pages (/boardonly, /players,
+   /rosters). "/" keeps its own header — the full board screen is unchanged. */
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.page-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+/* When the nav stands on its own rather than sitting inside .page-header —
+   i.e. on the main board, which keeps its own header. */
+.page-nav-standalone { margin-bottom: 10px; }
+/* Current page, marked the same way the primary button reads. */
+.page-nav .btn.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+/* Whose turn it is. None of these pages can take a pick, so this is the one
+   piece of state a parked tab must not get wrong — and the reason it carries
+   a link back to "/". */
+.onclock-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin-bottom: 10px;
+}
+.onclock-bar-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text3);
+  margin-right: 8px;
+}
+.onclock-bar-name { font-size: 15px; color: var(--text); margin-right: 8px; }
+.onclock-bar-meta { font-size: 11px; color: var(--text3); margin-right: 8px; }
+.onclock-bar-actions { display: flex; align-items: center; gap: 8px; }
+
+/* One-line stand-in for FifthPlacePanel on /boardonly — the board cannot be
+   relied on to show the jump pick at all (see BoardOnlyRoute). */
+.fifth-line {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+.fifth-line-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text3);
+  margin-right: 6px;
+}
+.fifth-line-player { color: var(--purple); }
+.fifth-line-meta { color: var(--text3); }
+
+/* Portrait phones only: 10 columns don't fit upright but do fit rotated. */
+.rotate-hint { display: none; }
+
+.roster-page-panel { max-width: 560px; }
+
+@media (max-width: 640px) {
+  .page-header { margin-bottom: 10px; }
+  /* Four links don't fit one row at 375px. A flex row leaves the last one
+     alone on row two stretched to full width, which reads as a different
+     kind of control; a 2x2 grid keeps them uniform and the same height. */
+  .page-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+  }
+
+  .onclock-bar { gap: 8px; }
+  .onclock-bar-name { font-size: 16px; }
+  .onclock-bar-meta { font-size: 12px; }
+  .onclock-bar-actions { width: 100%; justify-content: space-between; }
+
+  .fifth-line { font-size: 13px; }
+  .fifth-line-label { font-size: 11px; }
+
+  .roster-page-panel { max-width: none; }
+}
+
+@media (max-width: 640px) and (orientation: portrait) {
+  .rotate-hint {
+    display: block;
+    font-size: 12px;
+    color: var(--text3);
+    font-style: italic;
+    margin-bottom: 8px;
+  }
+}

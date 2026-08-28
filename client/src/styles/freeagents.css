@@ -8,6 +8,16 @@
   margin-bottom: 1rem;
 }
 
+/* Position tabs, grouped so they can become a scrolling strip on a phone.
+   Sits inside the flex .fa-toolbar, so it must be flex at every width or the
+   buttons stack vertically on desktop. */
+.fa-tab-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .fa-tab {
   font-size: 12px;
   padding: 6px 12px;
@@ -84,3 +94,56 @@
 .fa-rookie-tag { color: var(--amber); font-size: 10px; margin-left: 4px; }
 .fa-injury { color: var(--red); }
 .fa-empty-row td { text-align: center; color: var(--text3); padding: 2rem; }
+
+/* SMALL SCREENS
+   This page already scrolled its table correctly on a phone (the wrapper isn't
+   trapped in a fixed-column grid like the draft board was), so the work here
+   is touch sizing and getting the toolbar down from ~133px of wrapped chrome. */
+@media (max-width: 640px) {
+  .fa-toolbar { gap: 6px 4px; margin-bottom: .75rem; }
+
+  .fa-tab { font-size: 13px; padding: 10px 14px; min-height: 40px; }
+
+  /* Position tabs (ALL/QB/RB/…) are a long single row on a phone; let them
+     scroll sideways as one strip instead of wrapping into three stacked rows. */
+  /* nowrap is the point — the base rule wraps, which on a phone turned the
+     position tabs into three stacked rows of chrome above the players. */
+  .fa-tab-row,
+  .fa-status-toggle {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .fa-tab-row::-webkit-scrollbar,
+  .fa-status-toggle::-webkit-scrollbar { display: none; }
+  .fa-tab-row .fa-tab,
+  .fa-status-toggle .fa-tab { flex: 0 0 auto; }
+
+  .fa-status-toggle {
+    padding-left: 0;
+    margin-left: 0;
+    border-left: none;
+  }
+
+  .fa-search-input { margin-left: 0; width: 100%; flex-basis: 100%; font-size: 16px; }
+
+  .fa-table-wrap { -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+  .fa-table th { padding: 10px; font-size: 11px; }
+  .fa-table td { padding: 11px 10px; font-size: 13px; }
+
+  /* Player name is the column you navigate by — pin it so it stays visible
+     while scrolling right to reach Rank and Status. */
+  .fa-table th:first-child,
+  .fa-table td:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--bg2);
+    z-index: 1;
+  }
+  .fa-table th:first-child { z-index: 2; }
+  .fa-table tr:hover td:first-child { background: var(--bg3); }
+}

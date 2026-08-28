@@ -54,7 +54,7 @@ export default function OrderRandomizerTab() {
 
   return (
     <div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+      <div className="rand-inputs">
         {inputs.map((v, i) => (
           <input
             key={i}
