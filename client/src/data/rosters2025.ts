@@ -1,4 +1,4 @@
-// A fixed snapshot of each team's actual 2025-season Yahoo roster, transcribed
+// A fixed snapshot of each owner's actual 2025-season Yahoo roster, transcribed
 // by hand from roster screenshots and cross-checked against Sleeper's live
 // player data for spelling. This replaces the old randomly-generated test
 // data so that repeated local testing works against the same real teams and
@@ -6,14 +6,20 @@
 //
 // Order here becomes the default draft order when loaded — Robin can still
 // reorder on the Draft Order tab afterward, this is just a starting point.
+//
+// Keyed by OWNER, not team name. Owners rename their teams during the season,
+// so a team name is a moving target across years while the ten people are not.
+// Each entry keeps its 2025 team name in a trailing comment purely so these
+// rosters can still be traced back to the original screenshots.
 export interface Roster2025 {
-  teamName: string;
+  /** The owner's name — see the note above on why this isn't the team name. */
+  ownerName: string;
   players: string[];
 }
 
 export const ROSTERS_2025: Roster2025[] = [
   {
-    teamName: "The Paulyators",
+    ownerName: "Paul", // 2025 team name: The Paulyators
     players: [
       "Tyler Shough", "Brady Cook", "George Pickens", "Justin Jefferson", "Kyle Williams",
       "Kyren Williams", "Christian McCaffrey", "Darren Waller", "Ricky Pearsall", "Breece Hall",
@@ -22,7 +28,7 @@ export const ROSTERS_2025: Roster2025[] = [
     ],
   },
   {
-    teamName: "Action Jaxon",
+    ownerName: "Mark G", // 2025 team name: Action Jaxon
     players: [
       "Max Brosmer", "Josh Johnson", "Jaxon Smith-Njigba", "Chris Olave", "Tre Tucker",
       "Travis Etienne Jr.", "Bucky Irving", "Colby Parkinson", "Wan'Dale Robinson", "Kyle Monangai",
@@ -31,7 +37,7 @@ export const ROSTERS_2025: Roster2025[] = [
     ],
   },
   {
-    teamName: "The Chase Hurts",
+    ownerName: "Mark Sr", // 2025 team name: The Chase Hurts
     players: [
       "Josh Allen", "Jalen Hurts", "CeeDee Lamb", "Ja'Marr Chase", "Amon-Ra St. Brown",
       "Jonathan Taylor", "RJ Harvey", "Colston Loveland", "Jordan Addison", "Jaxson Dart",
@@ -40,7 +46,7 @@ export const ROSTERS_2025: Roster2025[] = [
     ],
   },
   {
-    teamName: "Buck Donuts",
+    ownerName: "Vince", // 2025 team name: Buck Donuts
     players: [
       "Jacoby Brissett", "Tyler Huntley", "Michael Wilson", "A.J. Brown", "DJ Moore",
       "Saquon Barkley", "Josh Jacobs", "Jake Ferguson", "Jauan Jennings", "Philip Rivers",
@@ -49,7 +55,7 @@ export const ROSTERS_2025: Roster2025[] = [
     ],
   },
   {
-    teamName: "Brocked Up",
+    ownerName: "Phil", // 2025 team name: Brocked Up
     players: [
       "Baker Mayfield", "Caleb Williams", "Terry McLaurin", "Courtland Sutton", "Nico Collins",
       "Michael Carter", "Kenny Gainwell", "Oronde Gadsden", "Alec Pierce", "Kirk Cousins",
@@ -58,7 +64,7 @@ export const ROSTERS_2025: Roster2025[] = [
     ],
   },
   {
-    teamName: "Hock-TUA",
+    ownerName: "Tee", // 2025 team name: Hock-TUA
     players: [
       "Matthew Stafford", "Sam Darnold", "Puka Nacua", "Tetairoa McMillan", "Mike Evans",
       "Jaylen Warren", "Dylan Sampson", "Mike Gesicki", "T.J. Hockenson", "Aaron Jones Sr.",
@@ -67,7 +73,7 @@ export const ROSTERS_2025: Roster2025[] = [
     ],
   },
   {
-    teamName: "Cafe",
+    ownerName: "Jason", // 2025 team name: Cafe
     players: [
       "Dak Prescott", "Geno Smith", "Chris Godwin Jr.", "Jameson Williams", "Luther Burden III",
       "D'Andre Swift", "Tony Pollard", "Trey McBride", "Drake London", "Brock Purdy",
@@ -76,7 +82,7 @@ export const ROSTERS_2025: Roster2025[] = [
     ],
   },
   {
-    teamName: "Five Yards a Carry",
+    ownerName: "Robin", // 2025 team name: Five Yards a Carry
     players: [
       "C.J. Stroud", "Bryce Young", "Jaylen Waddle", "Deebo Samuel", "Jalen Coker",
       "Bijan Robinson", "James Cook III", "Kyle Pitts Sr.", "Zay Flowers", "Aaron Rodgers",
@@ -85,7 +91,7 @@ export const ROSTERS_2025: Roster2025[] = [
     ],
   },
   {
-    teamName: "Yang Hansen",
+    ownerName: "Christian", // 2025 team name: Yang Hansen
     players: [
       "Trevor Lawrence", "Drake Maye", "Jakobi Meyers", "Stefon Diggs", "Brian Thomas Jr.",
       "Jahmyr Gibbs", "De'Von Achane", "Dallas Goedert", "Darius Slayton", "Javonte Williams",
@@ -94,7 +100,7 @@ export const ROSTERS_2025: Roster2025[] = [
     ],
   },
   {
-    teamName: "tHe pEnNy tRaDeRs",
+    ownerName: "Mark Jr", // 2025 team name: tHe pEnNy tRaDeRs
     players: [
       "Jared Goff", "Justin Herbert", "Ladd McConkey", "DeVonta Smith", "Tee Higgins",
       "Derrick Henry", "Chase Brown", "Brenton Strange", "Isaac TeSlaa", "Joe Burrow",

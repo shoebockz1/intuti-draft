@@ -74,7 +74,7 @@ export default function ProtectedPlayersTab() {
   }
 
   function loadRosters2025() {
-    setOwnerNames(ROSTERS_2025.map((r) => r.teamName));
+    setOwnerNames(ROSTERS_2025.map((r) => r.ownerName));
     setProtectedPlayers(ROSTERS_2025.map((r) => r.players.map((name) => ({ name, used: false }))));
     showToast("Loaded 2025 rosters — owner names and protected players replaced");
   }
