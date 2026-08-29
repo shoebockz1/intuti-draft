@@ -67,6 +67,10 @@ export default function BoardOnlyRoute() {
               — {fifth.winnerName} · {fifth.location}
             </span>
           </>
+        ) : fifth.pending ? (
+          <span className="fifth-line-player">
+            on the clock now — {fifth.winnerName ?? "?"} is taking the jump pick
+          </span>
         ) : (
           <span className="fifth-line-meta">
             not yet triggered — {fifth.winnerName ?? "?"} jumps the order once the 2nd unprotected pick is made

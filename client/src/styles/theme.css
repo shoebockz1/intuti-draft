@@ -180,22 +180,33 @@ input[type=text]::placeholder { color: var(--text3); }
    the page whenever a focused input's font-size is under 16px, which on a
    draft board leaves you zoomed in and hunting for the pick you just made.
    --------------------------------------------------------------------------- */
-@media (max-width: 640px) {
-  #app { padding: .75rem; }
-
-  h1 { font-size: 22px; }
-  .league-sub { font-size: 10px; }
-
+/* Touch sizing is gated at the LAYOUT breakpoint (1080px), not at a phone
+   width. Those two used to disagree: draft.css stacks to the single-column
+   touch layout at 1080px while these rules stopped at 640px, so the
+   641-1080px band got the mobile layout with untouched desktop controls.
+   That band is not just tablets - a 375x812 phone rotated to landscape is
+   812px wide, and /boardonly actively tells people to rotate. Rotating and
+   tapping back to "/" to pick handed you a 42x19px Keep button again. */
+@media (max-width: 1080px) {
   input[type=text], select { font-size: 16px; padding: 10px 12px; min-height: 44px; }
-
   .btn { font-size: 14px; padding: 11px 18px; min-height: 44px; }
   .btn.sm { font-size: 13px; padding: 9px 14px; min-height: 40px; }
   /* .btn.xs is the "Keep" button — the single most-pressed control in the
      draft (an owner with an intact seal keeps a player every turn). It was
      42x19px. Full 44px target, even though the protected list is long. */
   .btn.xs { font-size: 13px; padding: 10px 14px; min-height: 44px; }
-
   .top-tab { font-size: 13px; padding: 13px 14px; min-height: 44px; }
+}
+
+/* Phone-only: typography and chrome that would waste space on a tablet. */
+@media (max-width: 640px) {
+  #app { padding: .75rem; }
+
+  h1 { font-size: 22px; }
+  .league-sub { font-size: 10px; }
+
+
+
 
   .panel { padding: 12px 13px; }
 

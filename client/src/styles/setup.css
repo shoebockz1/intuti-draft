@@ -123,27 +123,36 @@
 .rand-hi { border-color: var(--green); background: var(--green-bg); }
 
 /* SMALL SCREENS */
-@media (max-width: 640px) {
-  .resume-banner { flex-wrap: wrap; gap: 10px; font-size: 13px; }
-
+/* Touch sizing follows the 1080px layout breakpoint; single-column stacking below is phone-only. */
+@media (max-width: 1080px) {
   /* 16px keeps iOS from zooming the page on focus — setup is 10 names typed
      back to back, so a zoom on every field would be relentless. */
   /* Needs its own min-height: these inputs carry no type="text" attribute, so
      the global input[type=text] touch sizing in theme.css doesn't match them. */
   .order-input { font-size: 16px; padding: 6px 0; min-height: 44px; }
+
   .order-num { font-size: 13px; width: 20px; }
+
   .order-row { gap: 6px; padding: 6px 0; }
 
   .prot-tag { font-size: 13px; padding: 6px 12px; }
+
   .prot-tag-x { padding: 0 4px; font-size: 15px; }
 
   .prot-search-item { padding: 12px 12px; font-size: 14px; }
+
   .prot-search-meta { font-size: 12px; }
+
   .prot-search-dropdown { max-height: 260px; }
+
+  .rand-row { padding: 12px; }
+
+  .rand-name { font-size: 15px; }
+}
+
+@media (max-width: 640px) {
+  .resume-banner { flex-wrap: wrap; gap: 10px; font-size: 13px; }
 
   /* One name per row — two columns of 16px inputs don't fit a 375px screen. */
   .rand-inputs { grid-template-columns: minmax(0, 1fr); }
-
-  .rand-row { padding: 12px; }
-  .rand-name { font-size: 15px; }
 }

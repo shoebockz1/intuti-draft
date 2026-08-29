@@ -79,8 +79,9 @@
 /* PROTECTED LIST */
 /* Capped so a full 18-player protected roster can't push the board and the
    seal-status panel off the bottom of a desktop sidebar. Was an inline style
-   on DraftScreen; moved here so the mobile rules below can lift the cap. */
+   on DraftScreen; moved here so the touch rules below can lift the cap. */
 .p-protected { max-height: 200px; overflow-y: auto; }
+
 
 .prot-item { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border); }
 .prot-item:last-child { border-bottom: none; }
@@ -222,47 +223,65 @@
   .board .col-owner { width: 66px; }
 }
 
-@media (max-width: 640px) {
-  .draft-header { flex-wrap: wrap; }
-  .header-actions { justify-content: flex-start; gap: 8px; }
-
-  .legend { gap: 8px 12px; }
-  .legend-item { font-size: 11px; }
-
-  .clock-name { font-size: 20px; }
-  .clock-meta { font-size: 12px; }
-  .badge { font-size: 11px; padding: 3px 9px; }
-
-  .ptab { font-size: 13px; padding: 11px 6px; min-height: 44px; }
-  .warn, .info { font-size: 12px; }
-  .pick-input { font-size: 16px; padding: 10px 12px; }
-
-  /* An 18-player roster at touch size runs ~1200px — uncapped it buries the
-     board under a wall of Keep buttons. Cap it to half the screen instead,
-     with overscroll-behavior stopping the scroll from chaining to the page
-     when the list hits its end (the usual reason nested scrollers feel broken
-     on touch). */
+/* Touch sizing follows the 1080px layout breakpoint (see theme.css); board and typography sizing below stays phone-only. */
+@media (max-width: 1080px) {
+  /* The 200px cap exists to protect the desktop sidebar, and the layout has
+     already stacked by this width — so lift it to half the screen. An
+     18-player roster at touch size runs ~1200px, which uncapped would bury the
+     board under a wall of Keep buttons; overscroll-behavior stops the scroll
+     chaining to the page at the ends, the usual reason a nested scroller feels
+     broken on touch. */
   .p-protected {
     max-height: 50vh;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
   }
 
+  .ptab { font-size: 13px; padding: 11px 6px; min-height: 44px; }
+
+  .pick-input { font-size: 16px; padding: 10px 12px; }
+
   .prot-item { padding: 7px 0; gap: 10px; }
+
   .prot-item-name { font-size: 14px; }
 
   .status-row { padding: 6px 0; }
+
   .status-name { font-size: 13px; max-width: none; }
 
   .roster-select { font-size: 16px; }
+
   .roster-seal { font-size: 12px; }
+
   .roster-empty { font-size: 13px; }
+
   .roster-item { padding: 8px 0; }
+
   .roster-item-name { font-size: 14px; }
+
   .roster-status { font-size: 11px; }
 
   .rpanel-header { padding: 14px; min-height: 48px; }
+
   .rpanel-title { font-size: 11px; }
+}
+
+@media (max-width: 640px) {
+  .draft-header { flex-wrap: wrap; }
+
+  .header-actions { justify-content: flex-start; gap: 8px; }
+
+  .legend { gap: 8px 12px; }
+
+  .legend-item { font-size: 11px; }
+
+  .clock-name { font-size: 20px; }
+
+  .clock-meta { font-size: 12px; }
+
+  .badge { font-size: 11px; padding: 3px 9px; }
+
+  .warn, .info { font-size: 12px; }
 
   /* BOARD — 10 owner columns can't fit a phone at any readable size, so it
      stays a horizontal scroller. Two things make that usable: momentum
@@ -272,6 +291,7 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
   }
+
   .board-outer::-webkit-scrollbar { height: 6px; }
 
   .board th.rnd-th,
@@ -282,13 +302,20 @@
     background: var(--bg);
     font-size: 11px;
   }
+
   .board th.rnd-th { z-index: 3; }
 
   .board .col-rnd { width: 30px; }
+
   .board .col-owner { width: 82px; }
+
   .board th.owner-th { font-size: 10px; }
+
   .cell { min-height: 44px; padding: 4px 5px; }
+
   .cell-pnum { font-size: 10px; }
+
   .cell-player { font-size: 12px; }
+
   .cell-picking, .cell-skip-text { font-size: 10px; }
 }

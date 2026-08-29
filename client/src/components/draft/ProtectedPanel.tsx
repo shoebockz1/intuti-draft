@@ -1,5 +1,6 @@
 import { useApp } from "../../context/AppContext";
 import { getCurOwner } from "../../engine/draftEngine";
+import { getPlayerStatus } from "../../engine/playerStatus";
 
 // TODO (player list phase): replace hardcoded "free" label with live availability status.
 // Each player in a broken-seal roster should show "drafted" if they've been picked by someone
@@ -43,7 +44,18 @@ export default function ProtectedPanel() {
           {p.used ? (
             <span style={{ fontSize: 9, color: "var(--text3)" }}>kept</span>
           ) : owner.sealBroken ? (
-            <span style={{ fontSize: 9, color: "var(--red)" }}>free</span>
+            // Resolve the real status rather than assuming "free": once a seal
+            // breaks, another owner may already have taken the player. The right
+            // sidebar and /rosters both resolve it via TeamRosterView, so hardcoding
+            // here made the two panels on this same screen disagree.
+            <span
+              style={{
+                fontSize: 9,
+                color: getPlayerStatus(draft, p.name).kind === "drafted" ? "var(--text3)" : "var(--red)",
+              }}
+            >
+              {getPlayerStatus(draft, p.name).kind === "drafted" ? "drafted" : "free"}
+            </span>
           ) : (
             <button className="btn xs" onClick={() => void keepOwnPick(i)}>
               Keep

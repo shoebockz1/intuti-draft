@@ -15,12 +15,16 @@ export default function FifthPlacePanel() {
 
   if (!draft) return null;
 
-  const { winnerName, player, location } = getFifthJumpInfo(draft);
+  const { winnerName, player, location, pending } = getFifthJumpInfo(draft);
 
   return (
     <div className="panel p-fifth">
       <div className="slabel">5th Place Jump Pick</div>
-      {!player ? (
+      {!player && pending ? (
+        <div style={{ fontSize: 12, color: "var(--purple)", lineHeight: 1.5 }}>
+          On the clock now — {winnerName ?? "?"} is taking the jump pick.
+        </div>
+      ) : !player ? (
         <div style={{ fontSize: 11, color: "var(--text3)", lineHeight: 1.5 }}>
           Not yet triggered — {winnerName ?? "?"} is this year's 5th place winner and will jump the order once the
           2nd unprotected pick is made.

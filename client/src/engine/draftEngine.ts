@@ -1,5 +1,13 @@
 // Pure, framework-agnostic draft engine.
 //
+// NOTE ON SCOPE: since the draft moved server-side, only the read helpers here
+// (getCurPick / getCurOwner / isCurrentPickFifthJump / ownerHasKeepableProtected)
+// are still used by the UI. The mutating functions below are reachable only via
+// draftReducer.ts, which nothing imports — real picks go through the API to
+// server/src/draft/engine.ts, which is the authoritative copy. They are kept in
+// step with the server anyway so the two can't silently diverge; if you change
+// a rule, change it in BOTH files.
+//
 // This is a faithful transliteration of the logic in
 // intuti-draft-prototype.html (buildSnake / startDraft / draftUnprotected /
 // keepOwn / insertFifthJump / markFinalRoundSkip / undoPick). The behavior
@@ -150,7 +158,7 @@ export function draftUnprotected(state: DraftState, playerName: string): EngineR
   const owner = getCurOwner(next);
   if (!pick || !owner) return { state: next };
 
-  const isFifthJump = next.fifthJumpPending && pick.ownerIdx === next.fifthPos;
+  const isFifthJump = next.fifthJumpPending && pick.isFifthJump;
 
   pick.player = trimmed;
 
@@ -215,7 +223,10 @@ export function undo(state: DraftState): EngineResult {
 export function isCurrentPickFifthJump(state: DraftState): boolean {
   const pick = getCurPick(state);
   if (!pick) return false;
-  return state.fifthJumpPending && pick.ownerIdx === state.fifthPos;
+  // Keyed on the inserted jump row itself, mirroring server/src/draft/engine.ts.
+  // The looser "belongs to the 5th-place owner" test let the exemption re-attach
+  // to their next natural turn if the pending flag ever survived the jump row.
+  return state.fifthJumpPending && pick.isFifthJump;
 }
 
 /** Whether the "Own player" tab should be available for the current owner (hasOwn in the prototype). */
