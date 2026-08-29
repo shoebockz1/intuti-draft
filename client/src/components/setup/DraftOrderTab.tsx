@@ -1,5 +1,6 @@
 import { useApp } from "../../context/AppContext";
 import { NUM_OWNERS } from "../../engine/types";
+import { DRAFT_ORDER_2026, FIFTH_PLACE_2026 } from "../../data/draftOrder2026";
 
 export default function DraftOrderTab() {
   const { ownerNames, setOwnerNames, protectedPlayers, setProtectedPlayers, fifthPos, setFifthPos, setSetupTab } =
@@ -23,6 +24,27 @@ export default function DraftOrderTab() {
     setProtectedPlayers(nextProt);
   }
 
+  function loadDraftOrder2026() {
+    // Carry each owner's protected players across with their name.
+    //
+    // Names and rosters are paired purely by index everywhere in this app (see
+    // moveOwner above, which swaps both together). So setting the names alone
+    // would leave the rosters where they were and silently hand every owner
+    // someone else's players - e.g. load the 2025 rosters, then load this
+    // order, and Jason would inherit Paul's roster. Matching by name makes
+    // this safe to click before or after "Load 2025 rosters".
+    const nextProtected = DRAFT_ORDER_2026.map((ownerName) => {
+      const from = ownerNames.findIndex((n) => n.trim() === ownerName);
+      return from >= 0 ? (protectedPlayers[from] ?? []) : [];
+    });
+
+    setOwnerNames([...DRAFT_ORDER_2026]);
+    setProtectedPlayers(nextProtected);
+    // Derived from the name rather than hardcoded, so reordering the fixture
+    // can't leave the jump pick pointing at the wrong team.
+    setFifthPos(DRAFT_ORDER_2026.indexOf(FIFTH_PLACE_2026));
+  }
+
   function commitNames() {
     const next = ownerNames.map((n, i) => n.trim() || `Owner ${i + 1}`);
     setOwnerNames(next);
@@ -39,6 +61,24 @@ export default function DraftOrderTab() {
         <div>
           <div className="slabel" style={{ marginBottom: 10 }}>
             Owner names in pick order — 1 picks first
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              alignItems: "center",
+              flexWrap: "wrap",
+              marginBottom: 12,
+              paddingBottom: 12,
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <button className="btn sm" onClick={loadDraftOrder2026}>
+              Load 2026 draft order
+            </button>
+            <span style={{ fontSize: 11, color: "var(--text3)" }}>
+              Loads this year's randomized order and sets {FIFTH_PLACE_2026} as the 5th place winner
+            </span>
           </div>
           <div id="order-list">
             {ownerNames.map((name, i) => (
