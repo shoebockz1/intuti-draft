@@ -3,7 +3,7 @@
 Living list of open items needed to make this fully functional and live for all 10 owners.
 Statuses: **Not started** / **In progress** / **Done, but untested**
 
-Last updated: 2026-08-30
+Last updated: 2026-08-30 (later)
 
 ---
 
@@ -95,7 +95,13 @@ Last updated: 2026-08-30
 
 
 - **Not started** — Rate limiting on `/api/commissioner/login` (low risk given this is a private trusted-friend tool, but there's currently nothing stopping repeated passcode guesses if the URL became known).
-- **Not started** — Session store. Express's default in-memory session store logs its own warning about not being production-safe (no pruning of expired sessions, doesn't scale past one process). Directly observed during the persistence testing: restarting the server logs the commissioner out (their session lives in the same in-memory store, unlike the draft data, which now survives via Redis). Low-stakes today — just re-enter the passcode — but worth fixing alongside future hardening, especially since we now expect restarts to be non-catastrophic and might do them more casually (e.g. the draft-day plan-switch).
+- **Done, but untested on the hosted site** — Session store. Express's default `MemoryStore` is per-process and gone on restart, so a Render free-tier spin-down or redeploy silently logged the commissioner out — and Undo, Reset and snapshot restore are all commissioner-gated, meaning the recovery tools vanished at exactly the moment something had gone wrong enough to need them. QA hit this for real during the v47 rehearsal: `/api/commissioner/status` flipped to false mid-run and blocked several checks.
+
+  Replaced with a small Redis-backed store (`server/src/persistence/sessionStore.ts`) on the **same Upstash instance the draft state already uses** — built on `@upstash/redis`, which is already a dependency, rather than adding `connect-redis` + `ioredis` and a second client for one small job. Keys are namespaced by environment for the same reason the draft key is. `touch()` refreshes the TTL so an active session can't expire mid-draft. Every callback reports success even when Redis errors: the worst honest outcome of an unreachable store is "you appear logged out", which is what happened before anyway — better than turning it into a 500 on an ordinary request. Falls back to `MemoryStore` when Upstash isn't configured, so local dev without an account is unchanged.
+
+  Also added: a production warning when `SESSION_SECRET` is unset. A persistent store only helps if the signing secret is stable across restarts, and the fallback secret is committed to this repo — **set `SESSION_SECRET` in the Render environment** if it isn't already.
+
+  Verified locally: logged in, **fully stopped and restarted the server**, and the session survived — `isCommissioner: true`, no login prompt, `/admin` rendered. Then confirmed the practical consequence, that a commissioner-gated **Undo works after the restart** (200, clock 11 → 10). Not yet deployed.
 - **Not started** — Provision a genuinely separate Upstash Redis database for local dev, instead of relying solely on the key-namespace split (see Done — "Namespaced the Redis persistence key by environment"). The key namespace already makes prod/dev collisions structurally impossible today, so this is defense-in-depth, not urgent — but a fully separate database (and `.env` credentials) removes the shared-blast-radius entirely, e.g. protects against a future code change that reads the key name from somewhere the namespace logic doesn't cover.
 
 ## Future — after this draft, not blocking anything upcoming

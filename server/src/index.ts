@@ -12,6 +12,7 @@ import { yahooRouter } from "./routes/yahoo";
 import { commissionerRouter } from "./routes/commissioner";
 import { draftRouter } from "./routes/draft";
 import { hydrateFromPersistence } from "./draft/store";
+import { createSessionStore } from "./persistence/sessionStore";
 
 // In production (Render) the client and server are one deployed service —
 // this same process serves the built React app's static files alongside the
@@ -28,8 +29,24 @@ if (isProduction) app.set("trust proxy", 1);
 
 app.use(cors({ origin: config.clientOrigin, credentials: true }));
 app.use(express.json());
+// The signing secret has to be stable across restarts for a persistent session
+// store to be worth anything — a changed secret invalidates every session just
+// as surely as losing them from memory did. An unset SESSION_SECRET falls back
+// to a constant that is stable but committed to this repo, so warn rather than
+// let production run on it silently.
+if (isProduction && !process.env.SESSION_SECRET) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[session] SESSION_SECRET is not set — falling back to the built-in default, " +
+      "which is public in the repository. Set it in the Render environment.",
+  );
+}
+
 app.use(
   session({
+    // Redis-backed so the commissioner's login survives a restart; falls back
+    // to express-session's MemoryStore when Upstash isn't configured.
+    store: createSessionStore(),
     secret: config.sessionSecret,
     resave: false,
     saveUninitialized: false,
