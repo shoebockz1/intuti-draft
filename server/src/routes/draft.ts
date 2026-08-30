@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireCommissioner } from "../middleware/requireCommissioner";
 import * as draftStore from "../draft/store";
-import type { ProtectedPlayer } from "../draft/types";
+import type { DraftState, ProtectedPlayer } from "../draft/types";
 
 // Mounted at /api/draft. Viewing the board (GET /state) is open to everyone.
 // Making a pick (keep-own or draft-unprotected) is open to everyone too —
@@ -11,6 +11,18 @@ import type { ProtectedPlayer } from "../draft/types";
 // commissioner-only.
 
 export const draftRouter = Router();
+
+// The undo history is a deep clone of the whole state per pick, so by late in a
+// draft it is ~99% of the payload (measured: 2.0 MB of which 2.06 MB... i.e.
+// nearly all of it, against 27 KB of actual state). Every polling tab
+// re-downloaded all of it every 2 seconds. No client needs the snapshots
+// themselves - undo is a server-side POST - so send the depth instead and let
+// the UI keep disabling its Undo button at zero.
+function toWire(state: DraftState) {
+  const { history, ...rest } = state;
+  return { ...rest, history: [] as [], historyDepth: history.length };
+}
+
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Unexpected error.";
@@ -22,7 +34,7 @@ draftRouter.get("/state", (_req, res) => {
     res.json({ started: false });
     return;
   }
-  res.json(state);
+  res.json(toWire(state));
 });
 
 // Read-only history of every draft action ("what happened and when"). Open
@@ -53,7 +65,7 @@ draftRouter.post("/start", requireCommissioner, (req, res) => {
     body.protectedPlayers as ProtectedPlayer[][],
     body.fifthPos,
   );
-  res.json(state);
+  res.json(toWire(state));
 });
 
 draftRouter.post("/pick/keep", (req, res) => {
@@ -64,7 +76,7 @@ draftRouter.post("/pick/keep", (req, res) => {
   }
   try {
     const { state, toast } = draftStore.pickKeepOwn(protIdx);
-    res.json({ state, toast });
+    res.json({ state: toWire(state), toast });
   } catch (err) {
     res.status(409).json({ error: errorMessage(err) });
   }
@@ -78,7 +90,7 @@ draftRouter.post("/pick/unprotected", (req, res) => {
   }
   try {
     const { state, toast } = draftStore.pickUnprotectedPlayer(playerName);
-    res.json({ state, toast });
+    res.json({ state: toWire(state), toast });
   } catch (err) {
     res.status(409).json({ error: errorMessage(err) });
   }
@@ -87,7 +99,7 @@ draftRouter.post("/pick/unprotected", (req, res) => {
 draftRouter.post("/undo", requireCommissioner, (_req, res) => {
   try {
     const { state, toast } = draftStore.undoLastPick();
-    res.json({ state, toast });
+    res.json({ state: toWire(state), toast });
   } catch (err) {
     res.status(409).json({ error: errorMessage(err) });
   }
@@ -127,7 +139,7 @@ draftRouter.get("/snapshots", requireCommissioner, (_req, res) => {
 draftRouter.post("/snapshots/:id/restore", requireCommissioner, (req, res) => {
   try {
     const state = draftStore.restoreSnapshot(req.params.id);
-    res.json(state);
+    res.json(toWire(state));
   } catch (err) {
     res.status(404).json({ error: errorMessage(err) });
   }

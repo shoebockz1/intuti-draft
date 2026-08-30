@@ -49,7 +49,14 @@ export interface DraftState {
   unprotCount: number;
   fifthJumpUsed: boolean;
   fifthJumpPending: boolean;
+  /**
+   * Always empty over the wire — the server strips the snapshots because they
+   * are ~99% of the payload and no client reads them (undo is a server POST).
+   * Use historyDepth to tell whether there is anything to undo.
+   */
   history: HistorySnapshot[];
+  /** Number of undoable picks the server is holding. */
+  historyDepth?: number;
   /** Transient toast message set by the last reducer action, if any. UI clears it after display. */
   lastToast?: string | null;
 }

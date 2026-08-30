@@ -99,10 +99,19 @@
    This page already scrolled its table correctly on a phone (the wrapper isn't
    trapped in a fixed-column grid like the draft board was), so the work here
    is touch sizing and getting the toolbar down from ~133px of wrapped chrome. */
+/* Touch sizing follows the 1080px layout breakpoint; the scrolling-strip layout below is phone-only. */
+@media (max-width: 1080px) {
+  .fa-tab { font-size: 13px; padding: 10px 14px; min-height: 40px; }
+
+  .fa-search-input { margin-left: 0; width: 100%; flex-basis: 100%; font-size: 16px; }
+
+  .fa-table th { padding: 10px; font-size: 11px; }
+
+  .fa-table td { padding: 11px 10px; font-size: 13px; }
+}
+
 @media (max-width: 640px) {
   .fa-toolbar { gap: 6px 4px; margin-bottom: .75rem; }
-
-  .fa-tab { font-size: 13px; padding: 10px 14px; min-height: 40px; }
 
   /* Position tabs (ALL/QB/RB/…) are a long single row on a phone; let them
      scroll sideways as one strip instead of wrapping into three stacked rows. */
@@ -118,8 +127,10 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
+
   .fa-tab-row::-webkit-scrollbar,
   .fa-status-toggle::-webkit-scrollbar { display: none; }
+
   .fa-tab-row .fa-tab,
   .fa-status-toggle .fa-tab { flex: 0 0 auto; }
 
@@ -129,11 +140,7 @@
     border-left: none;
   }
 
-  .fa-search-input { margin-left: 0; width: 100%; flex-basis: 100%; font-size: 16px; }
-
   .fa-table-wrap { -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
-  .fa-table th { padding: 10px; font-size: 11px; }
-  .fa-table td { padding: 11px 10px; font-size: 13px; }
 
   /* Player name is the column you navigate by — pin it so it stays visible
      while scrolling right to reach Rank and Status. */
@@ -144,6 +151,8 @@
     background: var(--bg2);
     z-index: 1;
   }
+
   .fa-table th:first-child { z-index: 2; }
+
   .fa-table tr:hover td:first-child { background: var(--bg3); }
 }

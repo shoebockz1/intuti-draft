@@ -3,7 +3,7 @@
 Living list of open items needed to make this fully functional and live for all 10 owners.
 Statuses: **Not started** / **In progress** / **Done, but untested**
 
-Last updated: 2026-08-28
+Last updated: 2026-08-29
 
 ---
 
@@ -47,6 +47,19 @@ Last updated: 2026-08-28
 
   **Still untested on a real phone**, and not yet deployed to Render — same caveat as the mobile item above.
 
+- **Done, but untested on the hosted site** — Fixes from the two PR #2 / PR #3 QA passes (2026-08-29, against `v46 b69e60a`). Two of these were **draft-day blockers** and both **pre-dated** these PRs — inherited verbatim from `intuti-draft-prototype.html`, which `engine.ts` was deliberately transliterated from. Neither PR caused them; PR #2's new 5th-place line was simply the first thing to make one visible.
+  1. **CRITICAL — keeping on the jump pick leaked the seal exemption.** `keepOwn()` never cleared `fifthJumpPending`, and the pick panel *defaults to the "Own player" tab* on the jump pick and says "Use Keep buttons below" — so the most natural action consumed the jump row while leaving the jump still armed. The exemption then re-attached to the winner's next natural turn: an extra pick, **and** a free unprotected pick, **and** an intact seal, with their whole roster still locked away. Fixed by consuming the jump in `keepOwn()` too, and by keying `isCurrentPickFifthJump()` on the inserted row (`pick.isFifthJump`) rather than merely "belongs to the 5th-place owner", which is what let it float.
+  2. **CRITICAL — the round-18 balancing skip was drawn but never enforced.** `isSkipped` was only ever read by `Board.tsx` to paint a grey cell; nothing advanced `cur` past it, so the draft stopped dead on a row the board was simultaneously showing as skipped, with no way forward but to fill it. Result: the winner finished with 19 players to everyone else's 18 — the exact imbalance the rule exists to prevent. Fixed with `advancePastSkipped()` after every pick.
+  3. **Pending-jump state read "not yet triggered"** while the winner was on the clock for it — misleading at precisely the moment the line exists to clarify. `getFifthJumpInfo()` now returns `pending`, and both surfaces render "on the clock now".
+  4. **Touch targets reverted to desktop size between 641–1080px.** The layout breakpoint (1080px, `draft.css`) and the touch breakpoint (640px, `theme.css`) disagreed, so that band got the mobile layout with untouched desktop controls. Not just tablets: **a 375x812 phone in landscape is 812px wide**, and `/boardonly` actively tells people to rotate. Touch sizing now follows the 1080px layout breakpoint; phone-only typography and chrome stay at 640px.
+  5. **State payload was ~99% undo history** — a deep clone of the whole state per pick, re-downloaded by every polling tab every 2s (measured ~2 MB at pick 77, against 27 KB of real state). The server now strips the snapshots and sends `historyDepth` instead; the Undo button reads that. Payload measured at **26 KB**. Note the full history is *still persisted to Redis* — see the open item below.
+  6. **The keep endpoint had no rule validation** — it would accept a keep for a broken-seal owner and record it as `type:"kept"`. Now rejected with a toast, along with an unknown or already-used index. Defence in depth; the UI already hides those buttons.
+  7. **Two panels on `/` disagreed** — the left sidebar hardcoded "free" for every unused player on a broken-seal roster while the right sidebar resolved the real status. It now resolves it too, so a player someone else already took reads "drafted" in both.
+
+  Verified by a scripted 181-pick draft through the real server engine (the HANDOFF section 2 worked example step by step, the keep-on-jump case, the broken-seal keep rejection, and a full run to completion): **all ten owners finish with exactly 18 players**, exactly one skipped row belonging to Mark Jr in round 18, and the jump exemption no longer leaks. Then in-browser: all three 5th-place states render correctly and both surfaces agree, the counter reaches 3/3, and at 812px and 768px there are now **0 controls under 40px and 0 focusables under 16px** (was 30 at 812px). Desktop at 1280px is byte-for-byte unchanged — Keep is still 42x19px there.
+
+  **Not yet deployed or re-tested on the hosted site.**
+
 ## Pending on external parties
 
 - **In progress** — Yahoo Fantasy Sports API access application submitted; waiting on Yahoo's review, no timeline given.
@@ -59,6 +72,10 @@ Last updated: 2026-08-28
 - **Will not do (decided 2026-08-28)** — Optimistic-concurrency guard on picks (sending `expectedPick`/`ownerIdx` so the server 409s a pick submitted from a stale view). Raised while scoping the multi-page work: `POST /api/draft/pick/keep` takes only `{ protIdx }` and applies it to whoever is on the clock when it arrives, so a stale client can in principle land a pick on the wrong owner. **Robin has assessed this as an acceptable risk and it is not being built**: the draft runs live in-person plus Zoom, the group is trusted, there is ample time between picks, and Undo already exists as a backstop. Recorded so it is not re-litigated — do not re-raise this unless the draft format changes (e.g. owners picking asynchronously/unsupervised).
 
 ## Hardening / lower-risk gaps
+- **Not started** — Trim or stop persisting the undo history to Redis. The wire payload is fixed (see the QA-fixes item above), but `persistNow()` still writes the whole state *including* every snapshot on each pick, which grows to several MB by the final rounds. Consider capping history depth (undo is used a pick or two at a time in practice) or excluding it from the persisted copy — noting that excluding it means undo would not survive a restart.
+- **Not started** — Decide whether `/players` Draft buttons need a confirmation step. QA flagged that one click on any of ~1,100 buttons lands a live pick for whoever is on the clock, with no confirm, on the page used for *browsing* rather than picking — easy to misfire on a phone in a scrolling list. Undo covers it, so this is a judgement call on friction, not a defect.
+- **Not started** — Remove `client/src/engine/draftReducer.ts` and the now-unused mutation functions in `client/src/engine/draftEngine.ts`. Nothing imports the reducer; all real picks go through the API to `server/src/draft/engine.ts`. The client copy is kept in step by hand today, which is exactly how the two would eventually diverge — a rule fix applied to the wrong file would look correct and do nothing.
+
 
 - **Not started** — Rate limiting on `/api/commissioner/login` (low risk given this is a private trusted-friend tool, but there's currently nothing stopping repeated passcode guesses if the URL became known).
 - **Not started** — Session store. Express's default in-memory session store logs its own warning about not being production-safe (no pruning of expired sessions, doesn't scale past one process). Directly observed during the persistence testing: restarting the server logs the commissioner out (their session lives in the same in-memory store, unlike the draft data, which now survives via Redis). Low-stakes today — just re-enter the passcode — but worth fixing alongside future hardening, especially since we now expect restarts to be non-catastrophic and might do them more casually (e.g. the draft-day plan-switch).

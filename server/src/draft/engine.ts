@@ -127,6 +127,22 @@ function markFinalRoundSkip(state: DraftState): void {
   if (finalPicks.length > 0) finalPicks[finalPicks.length - 1].isSkipped = true;
 }
 
+/**
+ * Move the clock past any picks marked isSkipped.
+ *
+ * markFinalRoundSkip() only *marks* the round-18 balancing skip; until this
+ * existed nothing acted on the mark, so the draft still put the 5th-place
+ * winner on the clock for a row the board was simultaneously painting grey as
+ * "skip", with no way to advance except by entering a player. That left the
+ * winner with 19 players to everyone else's 18 — exactly the imbalance the
+ * skip rule exists to prevent (HANDOFF.md section 2).
+ */
+function advancePastSkipped(state: DraftState): void {
+  while (state.cur < state.picks.length && state.picks[state.cur].isSkipped) {
+    state.cur++;
+  }
+}
+
 export interface EngineResult {
   state: DraftState;
   toast?: string;
@@ -150,7 +166,7 @@ export function draftUnprotected(state: DraftState, playerName: string): EngineR
   const owner = getCurOwner(next);
   if (!pick || !owner) return { state: next };
 
-  const isFifthJump = next.fifthJumpPending && pick.ownerIdx === next.fifthPos;
+  const isFifthJump = next.fifthJumpPending && pick.isFifthJump;
 
   pick.player = trimmed;
 
@@ -160,6 +176,12 @@ export function draftUnprotected(state: DraftState, playerName: string): EngineR
     pick.type = "fifth-jump";
     next.fifthJumpUsed = true;
     next.fifthJumpPending = false;
+    // The jump pick IS an unprotected selection, so it increments the global
+    // count — HANDOFF.md section 2 calls it "the 3rd unprotected pick", which is
+    // what the "x / 3" pill counts toward. The exemption granted here is only
+    // about the seal, which is why sealBroken is deliberately left alone.
+    // Re-triggering isn't a risk: the trigger requires fifthJumpUsed to be false.
+    next.unprotCount++;
     next.cur++;
   } else {
     pick.type = "unprotected";
@@ -176,22 +198,55 @@ export function draftUnprotected(state: DraftState, playerName: string): EngineR
     next.cur++;
   }
 
+  advancePastSkipped(next);
+
   return { state: next, toast };
 }
 
-/** Keep one of the current owner's own protected players. Mirrors keepOwn() exactly. */
+/** Keep one of the current owner's own protected players. */
 export function keepOwn(state: DraftState, protIdx: number): EngineResult {
+  const pick = getCurPick(state);
+  const owner = getCurOwner(state);
+  if (!pick || !owner) return { state };
+
+  // Rule checks. The UI already hides Keep buttons once a seal breaks, so these
+  // are defence in depth for a direct API call — but a broken-seal owner can no
+  // longer keep (HANDOFF.md section 2), and silently recording one as "kept"
+  // would corrupt the draft rather than fail loudly.
+  if (owner.sealBroken) {
+    return { state, toast: `${owner.name}'s seal is broken — they can no longer keep.` };
+  }
+  const entry = owner.protected[protIdx];
+  if (!entry) return { state, toast: "No such protected player." };
+  if (entry.used) return { state, toast: `${entry.name} has already been kept.` };
+
   const next = deepClone(state);
   next.history.push(snapshot(state));
 
-  const pick = getCurPick(next);
-  const owner = getCurOwner(next);
-  if (!pick || !owner) return { state: next };
+  const nextPick = getCurPick(next);
+  const nextOwner = getCurOwner(next);
+  if (!nextPick || !nextOwner) return { state: next };
 
-  owner.protected[protIdx].used = true;
-  pick.player = owner.protected[protIdx].name;
-  pick.type = "kept";
+  nextOwner.protected[protIdx].used = true;
+  nextPick.player = nextOwner.protected[protIdx].name;
+  nextPick.type = "kept";
+
+  // Keeping on the jump pick still consumes it.
+  //
+  // Previously only draftUnprotected() cleared these flags, so an owner who
+  // clicked Keep on their jump pick — the pick panel defaults to the "Own
+  // player" tab and literally says "Use Keep buttons below", making it the most
+  // natural action available — consumed the jump row while leaving the jump
+  // still "pending". The seal exemption then floated to their next natural
+  // turn, handing them an extra pick AND a free unprotected pick AND an intact
+  // seal, with their whole roster still locked away from everyone else.
+  if (next.fifthJumpPending && nextPick.isFifthJump) {
+    next.fifthJumpUsed = true;
+    next.fifthJumpPending = false;
+  }
+
   next.cur++;
+  advancePastSkipped(next);
 
   return { state: next };
 }
@@ -215,7 +270,11 @@ export function undo(state: DraftState): EngineResult {
 export function isCurrentPickFifthJump(state: DraftState): boolean {
   const pick = getCurPick(state);
   if (!pick) return false;
-  return state.fifthJumpPending && pick.ownerIdx === state.fifthPos;
+  // Keyed on the inserted jump row itself (isFifthJump), not merely on "this
+  // pick belongs to the 5th-place owner". The looser check meant that if the
+  // pending flag ever survived the jump row, the exemption silently re-attached
+  // to the winner's next natural turn.
+  return state.fifthJumpPending && pick.isFifthJump;
 }
 
 /** Whether the "Own player" tab should be available for the current owner (hasOwn in the prototype). */

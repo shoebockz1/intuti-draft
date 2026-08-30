@@ -16,7 +16,8 @@ export default function DraftScreen() {
 
   const me = draft.owners[myOwnerIdx];
 
-  const undoDisabled = draft.history.length === 0;
+  // historyDepth comes from the server; the array is always empty over the wire.
+  const undoDisabled = (draft.historyDepth ?? draft.history.length) === 0;
 
   return (
     <div>
