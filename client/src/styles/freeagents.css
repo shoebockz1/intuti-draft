@@ -101,7 +101,10 @@
    is touch sizing and getting the toolbar down from ~133px of wrapped chrome. */
 /* Touch sizing follows the 1080px layout breakpoint; the scrolling-strip layout below is phone-only. */
 @media (max-width: 1080px) {
-  .fa-tab { font-size: 13px; padding: 10px 14px; min-height: 40px; }
+  /* min-width matters as much as min-height here: a single-glyph filter like
+     "K" is only ~11px of text, so padding alone left it 39px wide - a touch
+     target is 40px in BOTH directions. */
+  .fa-tab { font-size: 13px; padding: 10px 14px; min-height: 40px; min-width: 40px; }
 
   .fa-search-input { margin-left: 0; width: 100%; flex-basis: 100%; font-size: 16px; }
 

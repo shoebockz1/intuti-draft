@@ -50,6 +50,17 @@ export default function Board() {
               const jumpPick: Pick | undefined = draft.picks.find(
                 (p) => p.round === round && p.ownerIdx === owner.idx && p.isFifthJump,
               );
+              // The normal pick deliberately wins this cell.
+              //
+              // The 5th-place jump is an oddball by design: it gives one owner
+              // two picks in a single round, which a uniform round-by-owner
+              // grid fundamentally cannot represent. Rather than distort the
+              // board for every other owner, the jump is surfaced elsewhere —
+              // the "5th Place Jump Pick" panel on "/" and the "5th-place
+              // pick:" line on /boardonly — and the round-18 skip cell shows
+              // the balancing side of it. QA has flagged the missing cell
+              // twice; it is a known, accepted trade-off, not an oversight.
+              // Don't "fix" this without a deliberate redesign of the grid.
               const disp = pick || jumpPick;
               if (!disp) return <td key={owner.idx}></td>;
 

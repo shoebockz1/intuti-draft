@@ -48,6 +48,17 @@ export function isPersistenceEnabled(): boolean {
 
 /** Fire-and-forget from callers' perspective — a Redis hiccup should never
  * block or fail an actual draft pick. Errors are logged, not thrown. */
+/**
+ * Throws on a failed write. It used to swallow the error and log it, which
+ * meant a failure was invisible to the caller — combined with the write being
+ * fire-and-forget, a pick could be acknowledged to the client with HTTP 200
+ * and then vanish on the next restart. QA reproduced exactly that: six
+ * consecutive acknowledged picks rolled back. Callers decide what to do; see
+ * persistOrRollback() in draft/store.ts.
+ *
+ * Still a no-op when persistence isn't configured, so local dev without
+ * Upstash behaves exactly as before.
+ */
 export async function savePersistedState(payload: PersistedPayload): Promise<void> {
   if (!client) return;
   try {
@@ -55,6 +66,7 @@ export async function savePersistedState(payload: PersistedPayload): Promise<voi
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("[persistence] Failed to save draft state to Redis:", err);
+    throw err;
   }
 }
 

@@ -86,7 +86,17 @@ export default function PickPanel() {
 
       {activeTab === "own" && (
         <div>
-          <div className="info">Use Keep buttons below, or switch to Unprotected to break seal.</div>
+          {/* On the jump pick, drafting unprotected does NOT break the seal —
+              that is the whole point of the exemption. This tab is the default
+              on that pick, so the old blanket "switch to Unprotected to break
+              seal" actively discouraged the one option the rule exists to
+              grant, and did it on the exact path that used to leak the
+              exemption. */}
+          <div className="info">
+            {isFifthJump
+              ? "Use Keep buttons below, or switch to Unprotected to draft anyone — on this jump pick that will not break the seal."
+              : "Use Keep buttons below, or switch to Unprotected to break seal."}
+          </div>
         </div>
       )}
     </div>

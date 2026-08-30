@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Response } from "express";
 import { requireCommissioner } from "../middleware/requireCommissioner";
 import * as draftStore from "../draft/store";
 import type { DraftState, ProtectedPlayer } from "../draft/types";
@@ -24,6 +24,16 @@ function toWire(state: DraftState) {
 }
 
 
+// A failed durable save means the board did NOT move (store.ts rolls back), so
+// it is a retryable server-side condition rather than a rejected request.
+function sendMutationError(res: Response, err: unknown, fallbackStatus: number): void {
+  if (err instanceof draftStore.PersistenceError) {
+    res.status(503).json({ error: err.message });
+    return;
+  }
+  res.status(fallbackStatus).json({ error: errorMessage(err) });
+}
+
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Unexpected error.";
 }
@@ -44,7 +54,7 @@ draftRouter.get("/log", (_req, res) => {
   res.json({ log: draftStore.getTransactionLog() });
 });
 
-draftRouter.post("/start", requireCommissioner, (req, res) => {
+draftRouter.post("/start", requireCommissioner, async (req, res) => {
   const body = (req.body ?? {}) as {
     ownerNames?: unknown;
     protectedPlayers?: unknown;
@@ -60,7 +70,7 @@ draftRouter.post("/start", requireCommissioner, (req, res) => {
     return;
   }
 
-  const state = draftStore.startDraft(
+  const state = await draftStore.startDraft(
     body.ownerNames as string[],
     body.protectedPlayers as ProtectedPlayer[][],
     body.fifthPos,
@@ -68,40 +78,40 @@ draftRouter.post("/start", requireCommissioner, (req, res) => {
   res.json(toWire(state));
 });
 
-draftRouter.post("/pick/keep", (req, res) => {
+draftRouter.post("/pick/keep", async (req, res) => {
   const { protIdx } = (req.body ?? {}) as { protIdx?: unknown };
   if (typeof protIdx !== "number") {
     res.status(400).json({ error: "Expected { protIdx: number }." });
     return;
   }
   try {
-    const { state, toast } = draftStore.pickKeepOwn(protIdx);
+    const { state, toast } = await draftStore.pickKeepOwn(protIdx);
     res.json({ state: toWire(state), toast });
   } catch (err) {
-    res.status(409).json({ error: errorMessage(err) });
+    sendMutationError(res, err, 409);
   }
 });
 
-draftRouter.post("/pick/unprotected", (req, res) => {
+draftRouter.post("/pick/unprotected", async (req, res) => {
   const { playerName } = (req.body ?? {}) as { playerName?: unknown };
   if (typeof playerName !== "string") {
     res.status(400).json({ error: "Expected { playerName: string }." });
     return;
   }
   try {
-    const { state, toast } = draftStore.pickUnprotectedPlayer(playerName);
+    const { state, toast } = await draftStore.pickUnprotectedPlayer(playerName);
     res.json({ state: toWire(state), toast });
   } catch (err) {
-    res.status(409).json({ error: errorMessage(err) });
+    sendMutationError(res, err, 409);
   }
 });
 
-draftRouter.post("/undo", requireCommissioner, (_req, res) => {
+draftRouter.post("/undo", requireCommissioner, async (_req, res) => {
   try {
-    const { state, toast } = draftStore.undoLastPick();
+    const { state, toast } = await draftStore.undoLastPick();
     res.json({ state: toWire(state), toast });
   } catch (err) {
-    res.status(409).json({ error: errorMessage(err) });
+    sendMutationError(res, err, 409);
   }
 });
 
@@ -124,9 +134,13 @@ draftRouter.post("/undo", requireCommissioner, (_req, res) => {
 // nothing for a server route to do here; see AppContext.softReset on the
 // client, which just calls navigate("/admin").
 
-draftRouter.post("/reset/hard", requireCommissioner, (_req, res) => {
-  draftStore.resetHard();
-  res.json({ started: false });
+draftRouter.post("/reset/hard", requireCommissioner, async (_req, res) => {
+  try {
+    await draftStore.resetHard();
+    res.json({ started: false });
+  } catch (err) {
+    sendMutationError(res, err, 409);
+  }
 });
 
 // Pre-reset safety net — hard reset snapshots the current state+log before
@@ -136,11 +150,11 @@ draftRouter.get("/snapshots", requireCommissioner, (_req, res) => {
   res.json({ snapshots: draftStore.listSnapshots() });
 });
 
-draftRouter.post("/snapshots/:id/restore", requireCommissioner, (req, res) => {
+draftRouter.post("/snapshots/:id/restore", requireCommissioner, async (req, res) => {
   try {
-    const state = draftStore.restoreSnapshot(req.params.id);
+    const state = await draftStore.restoreSnapshot(req.params.id);
     res.json(toWire(state));
   } catch (err) {
-    res.status(404).json({ error: errorMessage(err) });
+    sendMutationError(res, err, 404);
   }
 });
