@@ -4,11 +4,12 @@
 // multi-tenancy needed), so plain module-level variables are sufficient —
 // no database.
 //
-// Every mutation below also fires an async, best-effort write to Upstash
-// Redis (see persistence/draftPersistence.ts) so state survives a server
-// restart/redeploy, not just live in process memory. Persistence is
-// optional — if not configured, these calls are silent no-ops and behavior
-// is identical to before.
+// Every mutation below is durably saved to Upstash Redis (see
+// persistence/draftPersistence.ts) BEFORE it is reported as successful, so
+// state survives a restart/redeploy and an acknowledged pick is never lost.
+// A failed write rolls the in-memory state back and throws PersistenceError.
+// Persistence is optional — if not configured, the saves are silent no-ops
+// and behavior is identical to before.
 
 import type { DraftState, ProtectedPlayer } from "./types";
 import { createDraftState, draftUnprotected, keepOwn, undo as undoEngine } from "./engine";
@@ -25,12 +26,56 @@ export function getDraftState(): DraftState | null {
   return draftState;
 }
 
-/** Bundles current in-memory state and fires an async, best-effort save —
- * called at the end of every mutation below. Never awaited by callers of
- * those mutations; a slow/failed Redis write should never delay or fail an
- * actual draft pick (see savePersistedState's own error handling). */
-function persistNow(): void {
-  void savePersistedState({ draftState, transactionLog, snapshots });
+/** Thrown when a mutation could not be durably saved. The in-memory state has
+ * been rolled back by the time this surfaces, so the board has NOT moved. */
+export class PersistenceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PersistenceError";
+  }
+}
+
+interface StoreSnapshot {
+  draftState: DraftState | null;
+  transactionLog: TransactionLogEntry[];
+  snapshots: DraftSnapshot[];
+}
+
+/** Capture the module-level state so a failed write can be undone. Shallow
+ * array copies are enough: entries are appended, never mutated in place, and
+ * the engine returns a fresh state object rather than editing the old one. */
+function captureStore(): StoreSnapshot {
+  return { draftState, transactionLog: [...transactionLog], snapshots: [...snapshots] };
+}
+
+/**
+ * Save the current state, and if the write fails put everything back.
+ *
+ * This used to be fire-and-forget ("a slow/failed Redis write should never
+ * delay or fail an actual draft pick"), which sounded prudent but meant the
+ * route replied HTTP 200 before the write resolved — and savePersistedState
+ * swallowed its own errors, so a failure was invisible. QA reproduced the
+ * consequence: six consecutive acknowledged picks disappeared when the
+ * instance restarted, and because the transaction log rides along in the same
+ * payload it rolled back too and couldn't be used to rebuild them.
+ *
+ * A pick that is confirmed has to be durable. Failing loudly and leaving the
+ * clock where it was is recoverable — the commissioner just picks again. A
+ * pick that silently evaporates mid-draft is not.
+ *
+ * No-op when persistence isn't configured, so local dev is unaffected.
+ */
+async function persistOrRollback(before: StoreSnapshot): Promise<void> {
+  try {
+    await savePersistedState({ draftState, transactionLog, snapshots });
+  } catch {
+    draftState = before.draftState;
+    transactionLog = before.transactionLog;
+    snapshots = before.snapshots;
+    throw new PersistenceError(
+      "Could not save to storage — the board has not moved. Please try that again.",
+    );
+  }
 }
 
 /** Called once at server startup, before the server accepts requests — see
@@ -133,15 +178,16 @@ export function listSnapshots(): SnapshotSummary[] {
   });
 }
 
-export function restoreSnapshot(id: string): DraftState {
+export async function restoreSnapshot(id: string): Promise<DraftState> {
   const snap = snapshots.find((s) => s.id === id);
   if (!snap) {
     throw new Error("Snapshot not found.");
   }
+  const before = captureStore();
   draftState = deepClone(snap.state);
   transactionLog = deepClone(snap.log);
   appendLog({ action: "restore", detail: `Restored from pre-reset snapshot ${id}` });
-  persistNow();
+  await persistOrRollback(before);
   return draftState;
 }
 
@@ -150,18 +196,19 @@ export function restoreSnapshot(id: string): DraftState {
 // appends a transaction log entry describing what happened.
 // ---------------------------------------------------------------------------
 
-export function startDraft(
+export async function startDraft(
   ownerNames: string[],
   protectedPlayers: ProtectedPlayer[][],
   fifthPos: number,
-): DraftState {
+): Promise<DraftState> {
+  const before = captureStore();
   draftState = createDraftState(ownerNames, protectedPlayers, fifthPos);
   transactionLog = [];
   appendLog({
     action: "start",
     detail: `Draft started — ${ownerNames.length} owners, 5th place: ${ownerNames[fifthPos] ?? "?"}`,
   });
-  persistNow();
+  await persistOrRollback(before);
   return draftState;
 }
 
@@ -178,46 +225,67 @@ function requireInProgress(): DraftState {
 }
 
 /** Keep one of the current owner's own protected players. Open to everyone — see HANDOFF.md, no per-owner turn locking. */
-export function pickKeepOwn(protIdx: number): PickResult {
+export async function pickKeepOwn(protIdx: number): Promise<PickResult> {
   const current = requireInProgress();
+  const before = captureStore();
   const ownerName = current.owners[current.picks[current.cur]?.ownerIdx]?.name;
   const pickIdx = current.cur;
   const { state, toast } = keepOwn(current, protIdx);
-  draftState = state;
   const filledPick = state.picks[pickIdx];
-  appendLog({ action: "keep", ownerName, playerName: filledPick?.player ?? undefined });
-  persistNow();
+
+  // The engine refuses some keeps outright (broken seal, unknown or already-used
+  // index) and returns the state untouched. Logging regardless wrote phantom
+  // "keep" entries with no player into the transaction log - which is the audit
+  // trail used to reconstruct a draft, so entries for picks that never happened
+  // undermine exactly the job it exists for.
+  if (!filledPick?.player) {
+    return { state, toast };
+  }
+
+  draftState = state;
+  appendLog({ action: "keep", ownerName, playerName: filledPick.player });
+  await persistOrRollback(before);
   return { state, toast };
 }
 
 /** Draft any unprotected player for the current pick. Open to everyone. */
-export function pickUnprotectedPlayer(playerName: string): PickResult {
+export async function pickUnprotectedPlayer(playerName: string): Promise<PickResult> {
   const current = requireInProgress();
+  const before = captureStore();
   const ownerName = current.owners[current.picks[current.cur]?.ownerIdx]?.name;
   const pickIdx = current.cur;
   const { state, toast } = draftUnprotected(current, playerName);
-  draftState = state;
   const filledPick = state.picks[pickIdx];
-  const action: TransactionAction = filledPick?.type === "fifth-jump" ? "fifth-jump" : "unprotected";
-  appendLog({ action, ownerName, playerName: filledPick?.player ?? undefined });
-  persistNow();
+
+  // Same as above: a blank name, or an attempt made after the draft is already
+  // complete, leaves the state untouched and must not reach the log.
+  if (!filledPick?.player) {
+    return { state, toast };
+  }
+
+  draftState = state;
+  const action: TransactionAction = filledPick.type === "fifth-jump" ? "fifth-jump" : "unprotected";
+  appendLog({ action, ownerName, playerName: filledPick.player });
+  await persistOrRollback(before);
   return { state, toast };
 }
 
 /** Undo the most recent pick. Commissioner-only — enforced at the route level. */
-export function undoLastPick(): PickResult {
+export async function undoLastPick(): Promise<PickResult> {
   const current = requireInProgress();
+  const before = captureStore();
   const undonePick = current.cur > 0 ? current.picks[current.cur - 1] : undefined;
   const ownerName = undonePick ? current.owners[undonePick.ownerIdx]?.name : undefined;
   const { state, toast } = undoEngine(current);
   draftState = state;
   appendLog({ action: "undo", ownerName, playerName: undonePick?.player ?? undefined });
-  persistNow();
+  await persistOrRollback(before);
   return { state, toast };
 }
 
 /** Hard reset — snapshots the current state+log (if any), then wipes both back to empty. Commissioner-only — enforced at the route level. */
-export function resetHard(): void {
+export async function resetHard(): Promise<void> {
+  const before = captureStore();
   if (draftState) {
     appendLog({ action: "hard-reset", detail: "Draft wiped by commissioner." });
     pushSnapshot();
@@ -227,5 +295,5 @@ export function resetHard(): void {
   // Persist even after wiping — this saves the pre-reset snapshot pushed
   // above, so it's still restorable even if the server restarts before
   // anyone gets around to using it.
-  persistNow();
+  await persistOrRollback(before);
 }

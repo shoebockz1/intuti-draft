@@ -3,14 +3,14 @@
 Living list of open items needed to make this fully functional and live for all 10 owners.
 Statuses: **Not started** / **In progress** / **Done, but untested**
 
-Last updated: 2026-08-29
+Last updated: 2026-08-30
 
 ---
 
 ## Blocking — needed before any real multi-owner draft
 
 - **Not started** — Final human review pass of the "Load 2025 rosters" fixture data close to draft day, to catch any roster moves/trades since the source screenshots were taken.
-- **Not started** — Full 18-round, 10-owner rehearsal draft on the hosted version of the new server-authoritative architecture — only individual mechanics have been spot-checked so far, not a full run-through.
+- **Done (2026-08-30)** — Full 18-round, 10-owner rehearsal draft on the hosted version. Ran end to end against `v47` on the live site: 181 board slots, 180 real picks plus the one skipped row, the snake reversing continuously without resetting, and **all ten owners finishing with exactly 18 players**. The seal mechanic and the 5th-place jump both behaved exactly as `HANDOFF.md` section 2 specifies. Findings from the run are recorded in the QA-fixes item below; the ones not fixed are listed under Hardening. Move to `DONE.md` once the follow-up fixes are themselves deployed and re-checked.
 - **Done, but untested** — Optimize the mobile/tablet experience. The site was confirmed *reachable* on phones, but the layout had never been tuned for small touch screens. Root cause found: there were **zero media queries in the codebase**, and the draft screen's fixed `200px 1fr 210px` grid meant the two sidebars alone (410px) overflowed a 375px phone, collapsing the board's `1fr` track to **0px** — so the board spilled out of the page and the whole document scrolled sideways. Fixed across three routes:
   - Draft screen stacks below 1080px, reordered so the phone reading order is *on the clock → make a pick → keep buttons → board → status → 5th place → research* (uses `display: contents` to promote the sidebar's panels to grid items). Board stays a horizontal scroller on phones with the round-number column pinned left; at tablet widths columns narrow to 66px so all 10 owners fit with no scroll at all.
   - Every interactive control now meets a 40–44px touch target — previously **all 28 were under it**, with "Keep" (the most-pressed control in the draft) at 42×19px. Focusable inputs raised to 16px to stop iOS Safari auto-zooming the page on focus.
@@ -60,6 +60,17 @@ Last updated: 2026-08-29
 
   **Not yet deployed or re-tested on the hosted site.**
 
+- **Done, but untested on the hosted site** — Fixes from the gated v47 QA pass (2026-08-30). Two independent runs; one gated at Phase 1 on a touch-target technicality, the other completed the full 181-slot rehearsal.
+
+  **The rehearsal passed.** Both draft-day blockers from the previous round are verified fixed on production: the clock passes over the round-18 skip row, and **all ten owners finish with exactly 18 players** (the 5th-place winner previously had 19). The state payload carried a complete 181-pick draft in **28.9 KB** (was ~2 MB at pick 77). That closes the "full 18-round rehearsal draft" blocking item above.
+
+  Fixed in this pass:
+  1. **HIGH — an acknowledged pick could be silently lost.** `persistNow()` was fire-and-forget and `savePersistedState` swallowed its own errors, so the route replied HTTP 200 before the Redis write resolved and a failure was invisible. QA lost **six consecutive acknowledged picks** to a restart; the transaction log rides in the same payload, so it rolled back too and couldn't rebuild them. Every mutation now **awaits** the write and, on failure, **rolls the in-memory state back** and returns 503 — the board doesn't move, and the commissioner simply picks again. Costs ~230ms per pick against Upstash. Still a silent no-op when persistence isn't configured.
+  2. **Phantom transaction-log entries** — a regression I introduced in v47: rejection paths were added to `keepOwn` but the store still called `appendLog` unconditionally, writing "keep" entries with no player into the audit trail. Refused picks are now neither logged nor persisted.
+  3. **The jump pick's "Own player" tab misstated the cost** of switching to Unprotected ("...to break seal") on the one pick where it doesn't break the seal — sitting on exactly the path that used to leak the exemption.
+  4. **`.fa-tab` had `min-height` but no `min-width`**, so the single-glyph "K" filter measured 39px wide. A touch target is 40px in *both* directions.
+
+  Rollback proven with an injected write failure: the error surfaces as `PersistenceError`, the clock does not advance, no log entry is added, no seal is broken, and normal picking resumes once writes succeed. Verified against real Upstash afterwards.
 ## Pending on external parties
 
 - **In progress** — Yahoo Fantasy Sports API access application submitted; waiting on Yahoo's review, no timeline given.
@@ -72,6 +83,12 @@ Last updated: 2026-08-29
 - **Will not do (decided 2026-08-28)** — Optimistic-concurrency guard on picks (sending `expectedPick`/`ownerIdx` so the server 409s a pick submitted from a stale view). Raised while scoping the multi-page work: `POST /api/draft/pick/keep` takes only `{ protIdx }` and applies it to whoever is on the clock when it arrives, so a stale client can in principle land a pick on the wrong owner. **Robin has assessed this as an acceptable risk and it is not being built**: the draft runs live in-person plus Zoom, the group is trusted, there is ample time between picks, and Undo already exists as a backstop. Recorded so it is not re-litigated — do not re-raise this unless the draft format changes (e.g. owners picking asynchronously/unsupervised).
 
 ## Hardening / lower-risk gaps
+
+- **Won't fix (decided 2026-08-30)** — The 5th-place jump pick does not appear as its own cell on the draft board. The jump gives one owner two picks in a single round, which a uniform round-by-owner grid cannot represent; the normal pick wins the cell. **This is an accepted trade-off, not a defect** — the jump is surfaced by the "5th Place Jump Pick" panel on `/` and the "5th-place pick:" line on `/boardonly`, and the round-18 skip cell shows the balancing side. QA has flagged it twice, so the reasoning is now recorded in a comment in `Board.tsx` as well. Don't change it without a deliberate grid redesign.
+- **Not started** — Rejected picks return HTTP 200 with a `toast` rather than an error status, so a client can't distinguish refusal from success by status alone. Behaviourally safe (nothing is recorded, the clock doesn't advance) and the client currently expects `200 + toast`, so changing it means changing both sides together.
+- **Not started** — Sortable `<th>` headers on `/players` are ~33px and have no `role`/`tabindex`, so they're small targets and not keyboard-reachable. Outside the touch-target work, which covers buttons, links, inputs and selects.
+- **Not started** — Confirm intended behaviour of the "Rank" column sort on `/players`: it sorts by rank ascending rather than restoring the view's initial default ordering. Possibly spec wording rather than a defect.
+
 - **Not started** — Trim or stop persisting the undo history to Redis. The wire payload is fixed (see the QA-fixes item above), but `persistNow()` still writes the whole state *including* every snapshot on each pick, which grows to several MB by the final rounds. Consider capping history depth (undo is used a pick or two at a time in practice) or excluding it from the persisted copy — noting that excluding it means undo would not survive a restart.
 - **Not started** — Decide whether `/players` Draft buttons need a confirmation step. QA flagged that one click on any of ~1,100 buttons lands a live pick for whoever is on the clock, with no confirm, on the page used for *browsing* rather than picking — easy to misfire on a phone in a scrolling list. Undo covers it, so this is a judgement call on friction, not a defect.
 - **Not started** — Remove `client/src/engine/draftReducer.ts` and the now-unused mutation functions in `client/src/engine/draftEngine.ts`. Nothing imports the reducer; all real picks go through the API to `server/src/draft/engine.ts`. The client copy is kept in step by hand today, which is exactly how the two would eventually diverge — a rule fix applied to the wrong file would look correct and do nothing.
