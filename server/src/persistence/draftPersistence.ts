@@ -59,13 +59,62 @@ export function isPersistenceEnabled(): boolean {
  * Still a no-op when persistence isn't configured, so local dev without
  * Upstash behaves exactly as before.
  */
+/**
+ * How many undo steps survive a restart.
+ *
+ * DraftState.history holds a full deep clone of the board before every pick,
+ * and picks[] is pre-allocated to all 181 slots, so each entry costs a
+ * near-constant ~26KB regardless of how far along the draft is. Persisting the
+ * whole stack therefore grew the payload by ~26KB per pick, and each retained
+ * snapshot carried its own full history on top of that. QA found the result:
+ * the blob reached ~9.7MB, every SET failed, and the draft could not advance
+ * past pick 16. On v47 the same oversized write failed silently and cost six
+ * acknowledged picks; v48 made it an honest 503, which turned it into a hard
+ * stop instead of silent corruption. Neither is survivable on draft day.
+ *
+ * Ten steps is far more undo than the commissioner has ever needed at once
+ * (the recovery case is "someone misclicked one or two picks ago") and holds
+ * the payload flat at roughly 30KB for the whole draft.
+ */
+const PERSISTED_HISTORY_LIMIT = 10;
+
+/** Trim in-memory state down to what is worth writing. Returns copies — the
+ * live objects keep their full history so undo depth in a running process is
+ * unchanged; only what crosses the wire to Redis is capped. */
+function trimForPersistence(payload: PersistedPayload): PersistedPayload {
+  const capHistory = (state: DraftState): DraftState => ({
+    ...state,
+    history: state.history.slice(-PERSISTED_HISTORY_LIMIT),
+  });
+  return {
+    draftState: payload.draftState ? capHistory(payload.draftState) : null,
+    transactionLog: payload.transactionLog,
+    // Each snapshot embeds a complete DraftState, history included, and there
+    // are up to five of them — that was ~9.3MB of the ~9.7MB blob QA got stuck
+    // on. Snapshots exist to undo a hard reset, so what matters is the board
+    // they restore; the undo stack captured alongside it is never read. Even
+    // capping these to ten entries each still came to ~1.9MB, so they persist
+    // with no history at all.
+    snapshots: payload.snapshots.map((snap) => ({
+      ...snap,
+      state: { ...snap.state, history: [] },
+    })),
+  };
+}
+
 export async function savePersistedState(payload: PersistedPayload): Promise<void> {
   if (!client) return;
+  const serialized = JSON.stringify(trimForPersistence(payload));
   try {
-    await client.set(REDIS_KEY, JSON.stringify(payload));
+    await client.set(REDIS_KEY, serialized);
   } catch (err) {
+    // Size is the first thing to check when a write starts failing — Upstash
+    // rejects requests over 1MB, and this payload used to grow without bound.
     // eslint-disable-next-line no-console
-    console.error("[persistence] Failed to save draft state to Redis:", err);
+    console.error(
+      `[persistence] Failed to save draft state to Redis (payload ${serialized.length} bytes):`,
+      err,
+    );
     throw err;
   }
 }
