@@ -3,7 +3,7 @@
 Living list of open items needed to make this fully functional and live for all 10 owners.
 Statuses: **Not started** / **In progress** / **Done, but untested**
 
-Last updated: 2026-08-30 (later)
+Last updated: 2026-08-30 (evening)
 
 ---
 
@@ -78,8 +78,6 @@ Last updated: 2026-08-30 (later)
 
 ## Deferred features (explicitly, by prior decision)
 
-- **Not started** — Trades. Requirements only partially resolved (see `HANDOFF.md` Section 3) — pick-rebalancing mechanics still undesigned.
-
 - **Will not do (decided 2026-08-28)** — Optimistic-concurrency guard on picks (sending `expectedPick`/`ownerIdx` so the server 409s a pick submitted from a stale view). Raised while scoping the multi-page work: `POST /api/draft/pick/keep` takes only `{ protIdx }` and applies it to whoever is on the clock when it arrives, so a stale client can in principle land a pick on the wrong owner. **Robin has assessed this as an acceptable risk and it is not being built**: the draft runs live in-person plus Zoom, the group is trusted, there is ample time between picks, and Undo already exists as a backstop. Recorded so it is not re-litigated — do not re-raise this unless the draft format changes (e.g. owners picking asynchronously/unsupervised).
 
 ## Hardening / lower-risk gaps
@@ -101,11 +99,16 @@ Last updated: 2026-08-30 (later)
 
   Also added: a production warning when `SESSION_SECRET` is unset. A persistent store only helps if the signing secret is stable across restarts, and the fallback secret is committed to this repo — **set `SESSION_SECRET` in the Render environment** if it isn't already.
 
-  Verified locally: logged in, **fully stopped and restarted the server**, and the session survived — `isCommissioner: true`, no login prompt, `/admin` rendered. Then confirmed the practical consequence, that a commissioner-gated **Undo works after the restart** (200, clock 11 → 10). Not yet deployed.
+  Verified locally: logged in, **fully stopped and restarted the server**, and the session survived — `isCommissioner: true`, no login prompt, `/admin` rendered. Then confirmed the practical consequence, that a commissioner-gated **Undo works after the restart** (200, clock 11 → 10). Deployed as `v49 (b529fca)`; still worth confirming on the hosted site by logging in, restarting the Render service, and checking you are still commissioner.
 - **Not started** — Provision a genuinely separate Upstash Redis database for local dev, instead of relying solely on the key-namespace split (see Done — "Namespaced the Redis persistence key by environment"). The key namespace already makes prod/dev collisions structurally impossible today, so this is defense-in-depth, not urgent — but a fully separate database (and `.env` credentials) removes the shared-blast-radius entirely, e.g. protects against a future code change that reads the key name from somewhere the namespace logic doesn't cover.
 
 ## Future — after this draft, not blocking anything upcoming
 
+- **Not started — deliberately deferred past the 2026 draft (decided 2026-08-30).** Trades. Requirements are still only partially resolved (see `HANDOFF.md` Section 3) — the pick-rebalancing mechanics were never designed, and a traded protected player's relationship to seal status is genuinely ambiguous rather than merely unbuilt.
+
+  **The board does not support trades, and that is accepted for 2026.** Robin's workaround is deliberately low-tech: **record any mid-draft trades in a Google Doc** and reconcile them afterwards. That costs nothing and needs no code.
+
+  The reason for deferring rather than building it now is risk, not effort. Trades would touch pick ordering and the seal mechanic — the two most safety-critical parts of the engine, and the two that QA has already caught real rule violations in. Making a change of that size days before draft day would put a working, rehearsed board at risk to solve a problem a shared document already solves. Revisit after the 2026 draft, starting from the open questions in `HANDOFF.md` Section 3 rather than assuming standard fantasy-trade semantics.
 - **Not started** — Archive completed drafts so they can be loaded/viewed later. Today there's only ever "the one live draft" — no concept of draft history across years. Needs: a save-on-completion step, storage for past drafts (Redis works fine for one; a small number of yearly archives is still tiny data, so no new infra needed), and a read-only view to browse an archived draft's board/log.
 - **Not started** — Explore auto-loading a completed draft's results directly into the real 2026 Yahoo league. **Likely blocked by more than just the pending Yahoo approval**: the application currently in review only requested *read-only* access (`fspt-r` scope) — writing roster data into a Yahoo league is a separate, write-level permission (`fspt-w`) that hasn't been requested at all yet. Worth confirming the actual mechanics of "set a Yahoo roster via API" are even something Yahoo's API supports for this use case before assuming it's just a scope bump away.
 - **Not started** — After the 2026 season ends, extract real rosters from Yahoo the same way "Load 2025 rosters" works now, but automated instead of manual screenshots. Once Yahoo read access is approved, the existing (already-built, currently unused) server-side Yahoo roster-fetch plumbing could pull team names + players directly, generating a `rosters2026.ts`-equivalent fixture without the screenshot-and-transcribe process. Note team names may change year to year — worth designing for that rather than assuming stability.
