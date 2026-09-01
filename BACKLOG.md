@@ -3,14 +3,31 @@
 Living list of open items needed to make this fully functional and live for all 10 owners.
 Statuses: **Not started** / **In progress** / **Done, but untested**
 
-Last updated: 2026-08-30 (evening)
+Last updated: 2026-09-01
 
 ---
 
+> ## CODE FREEZE for the 2026 draft (decided 2026-09-01)
+>
+> **The board is stabilised. No further changes before draft day.**
+>
+> Two independent QA passes against `v51` both returned a GO verdict: the payload
+> blocker is fixed, the full 18-round rehearsal completed end to end with no failed
+> write, and all ten owners finished on exactly 18 players.
+>
+> Everything still open below is deliberately deferred. The remaining findings are
+> cosmetic, admin-only, or unreachable in normal play, and the risk of touching a
+> working board outweighs the value of fixing them. **Do not implement anything from
+> this file until after the draft** unless something is genuinely broken on the day.
+>
+> The tasks that DO remain before the draft are environment and data work, not code:
+> the roster fixture review, the Render tier decision, and wiping production before
+> setting up for real.
+
 ## Blocking — needed before any real multi-owner draft
 
-- **Not started** — Final human review pass of the "Load 2025 rosters" fixture data close to draft day, to catch any roster moves/trades since the source screenshots were taken.
-- **Done (2026-08-30)** — Full 18-round, 10-owner rehearsal draft on the hosted version. Ran end to end against `v47` on the live site: 181 board slots, 180 real picks plus the one skipped row, the snake reversing continuously without resetting, and **all ten owners finishing with exactly 18 players**. The seal mechanic and the 5th-place jump both behaved exactly as `HANDOFF.md` section 2 specifies. Findings from the run are recorded in the QA-fixes item below; the ones not fixed are listed under Hardening. Move to `DONE.md` once the follow-up fixes are themselves deployed and re-checked.
+- **Not started** — Final human review pass of the "Load 2025 rosters" fixture data close to draft day, to catch any roster moves/trades since the source screenshots were taken. **Add one check to this review:** every team defense must read as a full Sleeper name ("Detroit Lions", not "Lions"). The fixture is correct as of PR #8, but the matcher has no notion of a leading city, so a bare nickname entered by hand would silently make that defense draftable by anyone - this review is the compensating control for the deferred matcher fix under Hardening.
+- **Done (2026-08-30)** — Full 18-round, 10-owner rehearsal draft on the hosted version. Ran end to end against `v47` on the live site: 181 board slots, 180 real picks plus the one skipped row, the snake reversing continuously without resetting, and **all ten owners finishing with exactly 18 players**. The seal mechanic and the 5th-place jump both behaved exactly as `HANDOFF.md` section 2 specifies. Findings from the run are recorded in the QA-fixes item below; the ones not fixed are listed under Hardening. Move to `DONE.md` once the follow-up fixes are themselves deployed and re-checked. **Re-verified against `v51` on 2026-08-31** after the persistence blocker was fixed: another full 181-slot run, no failed write at any point, all ten owners again at exactly 18, the round-18 skip passed over without the clock stopping, and the jump firing once with the seal intact. Two independent QA passes both returned GO.
 - **Done, but untested** — Optimize the mobile/tablet experience. The site was confirmed *reachable* on phones, but the layout had never been tuned for small touch screens. Root cause found: there were **zero media queries in the codebase**, and the draft screen's fixed `200px 1fr 210px` grid meant the two sidebars alone (410px) overflowed a 375px phone, collapsing the board's `1fr` track to **0px** — so the board spilled out of the page and the whole document scrolled sideways. Fixed across three routes:
   - Draft screen stacks below 1080px, reordered so the phone reading order is *on the clock → make a pick → keep buttons → board → status → 5th place → research* (uses `display: contents` to promote the sidebar's panels to grid items). Board stays a horizontal scroller on phones with the round-number column pinned left; at tablet widths columns narrow to 66px so all 10 owners fit with no scroll at all.
   - Every interactive control now meets a 40–44px touch target — previously **all 28 were under it**, with "Keep" (the most-pressed control in the draft) at 42×19px. Focusable inputs raised to 16px to stop iOS Safari auto-zooming the page on focus.
@@ -82,12 +99,26 @@ Last updated: 2026-08-30 (evening)
 
 ## Hardening / lower-risk gaps
 
+### Deferred to after the 2026 draft (decided 2026-09-01, code freeze)
+
+All three were raised by the `v51` QA passes, all three were assessed, and all three were
+**deliberately not implemented** so the board would not be touched before draft day.
+
+- **Not started** — Add a confirmation to "Clear all" on the Protected Players tab. It empties all ten owners' rosters on a single click with no `window.confirm`, it sits directly beside "Load 2025 rosters" on the same toolbar, and setup state is client-side and never snapshotted, so there is no recovery path for hand-entered data. That contradicts the stated preference in `HANDOFF.md` section 6 that destructive actions be protected - "Wipe draft & start over" and re-clicking "Start draft" both confirm. **Deferred because**: Robin judged the risk very low - the button is admin-only and simply will not be used during the draft itself.
+
+- **Not started** — Fix the wording shown when an owner has kept every protected player they hold. The forced unprotected screen still warns that "their remaining protected players become available to everyone" when there are none remaining. Both QA passes flagged it; the flow itself is correct and does not dead-end, so this is wording only. **Deferred because**: Robin judged that on past drafts this could affect at most one owner, it is very unlikely to be reached at all, and the draft is run live - if someone does hit that screen he can explain it in the room.
+
+- **Not started** — Teach the name matcher that a bare NFL nickname means the full team defense, e.g. "Lions" resolves to Sleeper's "Detroit Lions". `normalizeName()` strips suffixes, punctuation and diacritics but has no notion of a leading city, so PR #8 fixed this in the **fixture** rather than the matcher. The data is correct today, but free-text entry - which `HANDOFF.md` section 6 requires be kept - can reintroduce it, and any draft created before `v51` still carries it. A safe implementation is a fixed map of the 32 nicknames applied only when the *entire* normalized name equals a nickname, so it cannot affect a real player. **Deferred because**: Robin noted the free-text field exists mainly for players missing from Sleeper, which is never the case for team defenses. The compensating control is the roster fixture review below - check every defense reads as a full Sleeper name.
+
+
 - **Won't fix (decided 2026-08-30)** — The 5th-place jump pick does not appear as its own cell on the draft board. The jump gives one owner two picks in a single round, which a uniform round-by-owner grid cannot represent; the normal pick wins the cell. **This is an accepted trade-off, not a defect** — the jump is surfaced by the "5th Place Jump Pick" panel on `/` and the "5th-place pick:" line on `/boardonly`, and the round-18 skip cell shows the balancing side. QA has flagged it twice, so the reasoning is now recorded in a comment in `Board.tsx` as well. Don't change it without a deliberate grid redesign.
 - **Not started** — Rejected picks return HTTP 200 with a `toast` rather than an error status, so a client can't distinguish refusal from success by status alone. Behaviourally safe (nothing is recorded, the clock doesn't advance) and the client currently expects `200 + toast`, so changing it means changing both sides together.
+- **Not started** — Post-completion pick attempts are refused *silently*: a pick posted to a finished draft returns HTTP 200 with `toast: null` - no error status and no message at all. Correctly refused underneath (no state change, no log entry), and only reachable through the API since the UI hides the pick controls once the draft completes. A notch worse than the item above, which at least carries a message.
+- **Not started** — On `/` after a draft completes, `.panel.p-pick` and `.panel.p-protected` render as empty ~30px bars beneath the "Draft complete!" banner rather than being hidden. Purely cosmetic, and only visible once a draft is over.
 - **Not started** — Sortable `<th>` headers on `/players` are ~33px and have no `role`/`tabindex`, so they're small targets and not keyboard-reachable. Outside the touch-target work, which covers buttons, links, inputs and selects.
 - **Not started** — Confirm intended behaviour of the "Rank" column sort on `/players`: it sorts by rank ascending rather than restoring the view's initial default ordering. Possibly spec wording rather than a defect.
 
-- **Not started** — Trim or stop persisting the undo history to Redis. The wire payload is fixed (see the QA-fixes item above), but `persistNow()` still writes the whole state *including* every snapshot on each pick, which grows to several MB by the final rounds. Consider capping history depth (undo is used a pick or two at a time in practice) or excluding it from the persisted copy — noting that excluding it means undo would not survive a restart.
+- **Done (PR #7, deployed as `v51`)** — Cap the undo history written to Redis. This was logged as a moderate hardening item and turned out to be a **draft-day blocker**: `DraftState.history` deep-cloned the whole board before every pick, and `picks[]` is pre-allocated to all 181 slots, so each entry cost a near-constant ~26KB however early the draft was. Each of the five retained snapshots embedded its own full copy on top. The blob reached **~9.7MB against Upstash's 1MB write cap** and every pick began failing with a 503 at pick 16. Persisted history is now capped at 10 entries and snapshots persist with none at all, holding the payload **flat**: QA measured 26,699 bytes at pick 20 and 29,439 bytes at completion, roughly 17 bytes per pick. Pick latency dropped from 1.0-1.8s to a 0.29s mean. Note this is the *persisted* cap only - undo depth inside a running process is unchanged; after a restart you have 10 undos.
 - **Not started** — Decide whether `/players` Draft buttons need a confirmation step. QA flagged that one click on any of ~1,100 buttons lands a live pick for whoever is on the clock, with no confirm, on the page used for *browsing* rather than picking — easy to misfire on a phone in a scrolling list. Undo covers it, so this is a judgement call on friction, not a defect.
 - **Not started** — Remove `client/src/engine/draftReducer.ts` and the now-unused mutation functions in `client/src/engine/draftEngine.ts`. Nothing imports the reducer; all real picks go through the API to `server/src/draft/engine.ts`. The client copy is kept in step by hand today, which is exactly how the two would eventually diverge — a rule fix applied to the wrong file would look correct and do nothing.
 
